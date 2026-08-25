@@ -18,12 +18,24 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
   if (daily.length === 0) return null
   const peak = Math.max(...daily.map((d) => d.count))
 
+  const first = daily[0]
+  const last = daily[daily.length - 1]
+
   return (
     <Card className="p-5">
-      <p className="label mb-4">Signups per day</p>
+      <div className="mb-4 flex items-baseline justify-between">
+        <p className="label">Signups per day</p>
+        <p className="tabular text-xs text-muted-foreground">peak {peak}</p>
+      </div>
+
       <div className="flex h-28 items-end gap-1">
         {daily.map((day) => (
-          <div key={day.date} className="group relative flex-1">
+          <div
+            key={day.date}
+            className="group relative flex-1"
+            // Touch devices get no hover, so the value is also the title.
+            title={`${day.date}: ${day.count}`}
+          >
             <div
               className="rounded-sm bg-gold/70 transition-all duration-500 group-hover:bg-gold"
               style={{ height: `${Math.max(4, (day.count / peak) * 112)}px` }}
@@ -33,6 +45,12 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Axis ends, so the range is readable without hovering. */}
+      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+        <span>{first.date}</span>
+        {daily.length > 1 && <span>{last.date}</span>}
       </div>
     </Card>
   )
@@ -170,7 +188,7 @@ export function Overview() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatTile label="On the waitlist" value={stats.total} />
         <StatTile
           label="Talent"

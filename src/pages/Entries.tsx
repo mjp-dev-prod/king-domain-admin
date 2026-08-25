@@ -63,8 +63,8 @@ export function Entries() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-56 flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative sm:min-w-56 sm:flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search email or notes…"
@@ -74,32 +74,35 @@ export function Entries() {
           />
         </div>
 
-        <div className="flex gap-1">
-          {ROLE_FILTERS.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => {
-                setRole(filter.value)
-                setPage(1)
-              }}
-              className={cn(
-                'rounded-md px-3 py-1.5 text-sm transition-colors',
-                role === filter.value
-                  ? 'bg-secondary text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex gap-1">
+            {ROLE_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => {
+                  setRole(filter.value)
+                  setPage(1)
+                }}
+                className={cn(
+                  'rounded-md px-2.5 py-1.5 text-sm transition-colors sm:px-3',
+                  role === filter.value
+                    ? 'bg-secondary text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
 
-        <Button variant="outline" asChild>
-          <a href={api.exportUrl({ search: debounced, role })}>
-            <Download className="size-4" />
-            Export CSV
-          </a>
-        </Button>
+          <Button variant="outline" asChild className="shrink-0">
+            <a href={api.exportUrl({ search: debounced, role })}>
+              <Download className="size-4" />
+              <span className="hidden sm:inline">Export CSV</span>
+              <span className="sm:hidden">CSV</span>
+            </a>
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden p-0">
@@ -114,56 +117,107 @@ export function Entries() {
             {debounced || role ? 'Nothing matches those filters.' : 'No signups yet.'}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Side</TableHead>
-                  <TableHead>Categories</TableHead>
-                  <TableHead>Note</TableHead>
-                  <TableHead className="text-right">Joined</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className={cn('transition-opacity', loading && 'opacity-50')}>
-                {data?.entries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-medium">{entry.email}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          entry.role === 'talent'
-                            ? 'border-gold/40 text-gold'
-                            : 'border-green-soft/40 text-green-soft',
-                        )}
-                      >
-                        {entry.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {entry.categories.map((category) => (
-                          <span
-                            key={category}
-                            className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
-                          >
-                            {category}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-56 truncate text-muted-foreground">
-                      {entry.note ?? '—'}
-                    </TableCell>
-                    <TableCell className="tabular whitespace-nowrap text-right text-muted-foreground">
-                      {formatDate(entry.joinedAt)}
-                    </TableCell>
+          <>
+            {/* Table on wider screens; cards below, where five columns stop
+                being readable. */}
+            <div className="hidden overflow-x-auto md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Side</TableHead>
+                    <TableHead>Categories</TableHead>
+                    <TableHead>Note</TableHead>
+                    <TableHead className="text-right">Joined</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody className={cn('transition-opacity', loading && 'opacity-50')}>
+                  {data?.entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">{entry.email}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            entry.role === 'talent'
+                              ? 'border-gold/40 text-gold'
+                              : 'border-green-soft/40 text-green-soft',
+                          )}
+                        >
+                          {entry.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {entry.categories.map((category) => (
+                            <span
+                              key={category}
+                              className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-56 truncate text-muted-foreground">
+                        {entry.note ?? '—'}
+                      </TableCell>
+                      <TableCell className="tabular whitespace-nowrap text-right text-muted-foreground">
+                        {formatDate(entry.joinedAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div
+              className={cn(
+                'divide-y divide-border transition-opacity md:hidden',
+                loading && 'opacity-50',
+              )}
+            >
+              {data?.entries.map((entry) => (
+                <div key={entry.id} className="space-y-2 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 truncate font-medium">{entry.email}</p>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'shrink-0',
+                        entry.role === 'talent'
+                          ? 'border-gold/40 text-gold'
+                          : 'border-green-soft/40 text-green-soft',
+                      )}
+                    >
+                      {entry.role}
+                    </Badge>
+                  </div>
+
+                  {entry.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {entry.categories.map((category) => (
+                        <span
+                          key={category}
+                          className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
+                        >
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {entry.note && (
+                    <p className="text-sm text-muted-foreground">{entry.note}</p>
+                  )}
+
+                  <p className="tabular text-xs text-muted-foreground">
+                    {formatDate(entry.joinedAt)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </Card>
 

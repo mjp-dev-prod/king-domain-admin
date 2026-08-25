@@ -10,6 +10,14 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,6 +40,8 @@ export function Team() {
   const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [inviteUrl, setInviteUrl] = useState('')
+  const [revoking, setRevoking] = useState<AdminUser | null>(null)
+  const [revokePending, setRevokePending] = useState(false)
 
   function load() {
     api
@@ -62,15 +72,19 @@ export function Team() {
     }
   }
 
-  async function onRevoke(admin: AdminUser) {
-    if (!confirm(`Revoke access for ${admin.email}? Their sessions end immediately.`)) return
+  async function confirmRevoke() {
+    if (!revoking) return
+    setRevokePending(true)
 
     try {
-      await api.revoke(admin.id)
+      await api.revoke(revoking.id)
       load()
-      toast.success(`${admin.email} revoked`)
+      toast.success(`${revoking.email} revoked`)
+      setRevoking(null)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not revoke access.')
+    } finally {
+      setRevokePending(false)
     }
   }
 
@@ -80,6 +94,9 @@ export function Team() {
       () => toast.error('Could not copy — select and copy it manually.'),
     )
   }
+
+  const canRevoke = (admin: AdminUser) =>
+    admin.id !== user?.id && admin.status !== 'revoked'
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
@@ -102,13 +119,9 @@ export function Team() {
           </div>
           <div className="min-w-40 flex-1 space-y-2">
             <Label htmlFor="invite-name">Name</Label>
-            <Input
-              id="invite-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <Input id="invite-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
             {submitting ? <Loader2 className="animate-spin" /> : <UserPlus className="size-4" />}
             Create invite
           </Button>
@@ -117,64 +130,120 @@ export function Team() {
         {inviteUrl && (
           <div className="mt-4 flex items-center gap-2 rounded-md border border-gold/30 bg-gold/5 p-3 animate-in fade-in slide-in-from-top-1">
             <code className="flex-1 truncate text-xs">{inviteUrl}</code>
-            <Button variant="ghost" size="sm" onClick={copyInvite}>
+            <Button variant="ghost" size="sm" onClick={copyInvite} className="shrink-0">
               <Copy className="size-3.5" />
-              Copy
+              <span className="hidden sm:inline">Copy</span>
             </Button>
           </div>
         )}
       </Card>
 
-      <Card className="overflow-hidden p-0">
-        {admins === null ? (
-          <div className="space-y-2 p-5">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {admins.map((admin) => (
-                <TableRow key={admin.id}>
-                  <TableCell className="font-medium">{admin.email}</TableCell>
-                  <TableCell className="text-muted-foreground">{admin.name ?? '—'}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {admin.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn(STATUS_STYLES[admin.status])}>
-                      {admin.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {admin.id !== user?.id && admin.status !== 'revoked' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => onRevoke(admin)}
-                      >
-                        Revoke
-                      </Button>
-                    )}
-                  </TableCell>
+      {admins === null ? (
+        <Card className="space-y-2 p-5">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </Card>
+      ) : (
+        <>
+          {/* Table on wider screens; cards below, where columns stop working. */}
+          <Card className="hidden overflow-hidden p-0 md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {admins.map((admin) => (
+                  <TableRow key={admin.id}>
+                    <TableCell className="font-medium">{admin.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{admin.name ?? '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {admin.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn(STATUS_STYLES[admin.status])}>
+                        {admin.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {canRevoke(admin) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setRevoking(admin)}
+                        >
+                          Revoke
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          <div className="space-y-3 md:hidden">
+            {admins.map((admin) => (
+              <Card key={admin.id} className="gap-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{admin.email}</p>
+                    <p className="text-sm text-muted-foreground">{admin.name ?? '—'}</p>
+                  </div>
+                  <Badge variant="outline" className={cn('shrink-0', STATUS_STYLES[admin.status])}>
+                    {admin.status}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="capitalize">
+                    {admin.role}
+                  </Badge>
+                  {canRevoke(admin) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setRevoking(admin)}
+                    >
+                      Revoke
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      <Dialog open={revoking !== null} onOpenChange={(open) => !open && setRevoking(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Revoke access?</DialogTitle>
+            <DialogDescription>
+              {revoking?.email} loses access immediately and any active sessions end. Their
+              outstanding invite links stop working too.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevoking(null)} disabled={revokePending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmRevoke} disabled={revokePending}>
+              {revokePending && <Loader2 className="animate-spin" />}
+              Revoke access
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
