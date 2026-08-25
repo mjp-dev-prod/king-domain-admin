@@ -1,0 +1,108 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * King Domain brand v0 — see king-domain-mobile/CLAUDE.md.
+ * The admin runs dark-first: it's an internal tool people keep open, and the
+ * ink ground matches the marketing site.
+ */
+@theme {
+  --color-ink: #151a2e;
+  --color-ink-2: #1e2438;
+  --color-ink-3: #2a3149;
+  --color-paper: #faf8f3;
+  --color-paper-2: #f1eee6;
+  --color-gold: #c9a227;
+  --color-gold-soft: #e0be4a;
+  --color-green: #2f7a5e;
+  --color-green-soft: #4fa37f;
+  --color-slate-body: #5b6178;
+  --color-slate-dim: #8a90a3;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Public Sans', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius-kd: 4px;
+}
+
+:root {
+  --radius: 0.25rem;
+
+  --background: #151a2e;
+  --foreground: #faf8f3;
+  --card: #1e2438;
+  --card-foreground: #faf8f3;
+  --popover: #1e2438;
+  --popover-foreground: #faf8f3;
+  --primary: #c9a227;
+  --primary-foreground: #151a2e;
+  --secondary: #2a3149;
+  --secondary-foreground: #faf8f3;
+  --muted: #2a3149;
+  --muted-foreground: #8a90a3;
+  --accent: #2a3149;
+  --accent-foreground: #faf8f3;
+  --destructive: #e8836b;
+  --border: #2a3149;
+  --input: #2a3149;
+  --ring: #c9a227;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  /* Uppercase mono labels, used for table headers and stat captions. */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

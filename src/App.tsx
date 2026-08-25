@@ -1,0 +1,62 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
+import { AuthProvider, useAuth } from '@/lib/auth'
+import { Shell } from '@/components/Shell'
+import { Login } from '@/pages/Login'
+import { AcceptInvite } from '@/pages/AcceptInvite'
+import { Overview } from '@/pages/Overview'
+import { Entries } from '@/pages/Entries'
+import { Team } from '@/pages/Team'
+import { Toaster } from '@/components/ui/sonner'
+
+function Protected() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!user) return <Navigate to="/login" replace />
+
+  return <Shell />
+}
+
+/** Owner-only routes fall back to the overview rather than erroring. */
+function OwnerOnly({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth()
+  if (user?.role !== 'owner') return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
+
+          <Route element={<Protected />}>
+            <Route index element={<Overview />} />
+            <Route path="entries" element={<Entries />} />
+            <Route
+              path="team"
+              element={
+                <OwnerOnly>
+                  <Team />
+                </OwnerOnly>
+              }
+            />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <Toaster />
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
