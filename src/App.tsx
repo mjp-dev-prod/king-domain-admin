@@ -3,10 +3,13 @@ import { Loader2 } from 'lucide-react'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { Shell } from '@/components/Shell'
 import { Login } from '@/pages/Login'
+import { ForgotPassword } from '@/pages/ForgotPassword'
+import { ResetPassword } from '@/pages/ResetPassword'
 import { AcceptInvite } from '@/pages/AcceptInvite'
 import { Overview } from '@/pages/Overview'
 import { Entries } from '@/pages/Entries'
 import { Team } from '@/pages/Team'
+import { Settings } from '@/pages/Settings'
 import { Toaster } from '@/components/ui/sonner'
 
 function Protected() {
@@ -38,6 +41,8 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/accept-invite" element={<AcceptInvite />} />
 
           <Route element={<Protected />}>
@@ -51,6 +56,7 @@ export default function App() {
                 </OwnerOnly>
               }
             />
+            <Route path="settings" element={<Settings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

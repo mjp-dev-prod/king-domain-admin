@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const LINKS = [
@@ -42,10 +42,19 @@ export function Shell() {
             ))}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1">
             <span className="hidden max-w-40 truncate text-xs text-muted-foreground md:inline">
               {user?.name || user?.email}
             </span>
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              className={({ isActive }) =>
+                cn(buttonVariants({ variant: 'ghost', size: 'icon' }), isActive && 'bg-secondary')
+              }
+            >
+              <SettingsIcon className="size-4" />
+            </NavLink>
             <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
               <LogOut className="size-4" />
             </Button>

@@ -89,6 +89,29 @@ export const api = {
       body: JSON.stringify({ token, password, name }),
     }),
 
+  forgotPassword: (email: string) =>
+    request<{ ok: true; message: string }>('/admin/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  checkResetToken: (token: string) =>
+    request<{ email: string }>(
+      `/admin/auth/reset-password?token=${encodeURIComponent(token)}`,
+    ),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true }>('/admin/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: true }>('/admin/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
   stats: () => request<Stats>('/admin/waitlist/stats'),
 
   notes: () =>
