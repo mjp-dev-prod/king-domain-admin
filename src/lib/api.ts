@@ -23,6 +23,35 @@ export type WaitlistEntry = {
   joinedAt: string
 }
 
+export type DecisionStatus = 'open' | 'closed'
+export type Stance = 'agree' | 'disagree' | 'need_discussion'
+
+export type DecisionAdmin = { id: string; name: string | null; email: string }
+
+export type DecisionStanceEntry = { user: DecisionAdmin; stance: Stance; updatedAt: string }
+export type DecisionCommentEntry = {
+  id: string
+  body: string
+  user: DecisionAdmin
+  createdAt: string
+}
+
+export type DecisionSummary = {
+  id: string
+  title: string
+  description: string
+  milestoneRef: string | null
+  status: DecisionStatus
+  createdBy: DecisionAdmin
+  createdAt: string
+  closedAt: string | null
+  closedBy: DecisionAdmin | null
+  stanceCounts: Record<Stance, number>
+  stances: DecisionStanceEntry[]
+}
+
+export type Decision = DecisionSummary & { comments: DecisionCommentEntry[] }
+
 export type Stats = {
   total: number
   talent: number
@@ -152,4 +181,44 @@ export const api = {
 
   revoke: (id: string) =>
     request<{ ok: true }>(`/admin/admins/${id}/revoke`, { method: 'POST' }),
+
+  decisions: (params: { page?: number; status?: string; milestoneRef?: string } = {}) => {
+    const query = new URLSearchParams()
+    if (params.page) query.set('page', String(params.page))
+    if (params.status) query.set('status', params.status)
+    if (params.milestoneRef) query.set('milestoneRef', params.milestoneRef)
+    return request<{
+      decisions: DecisionSummary[]
+      page: number
+      pageSize: number
+      total: number
+      pages: number
+    }>(`/admin/decisions?${query}`)
+  },
+
+  decision: (id: string) => request<{ decision: Decision }>(`/admin/decisions/${id}`),
+
+  createDecision: (title: string, description: string, milestoneRef?: string) =>
+    request<{ decision: Decision }>('/admin/decisions', {
+      method: 'POST',
+      body: JSON.stringify({ title, description, milestoneRef: milestoneRef || undefined }),
+    }),
+
+  castStance: (id: string, stance: Stance) =>
+    request<{ decision: Decision }>(`/admin/decisions/${id}/stance`, {
+      method: 'POST',
+      body: JSON.stringify({ stance }),
+    }),
+
+  addComment: (id: string, body: string) =>
+    request<{ decision: Decision }>(`/admin/decisions/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+
+  closeDecision: (id: string) =>
+    request<{ decision: Decision }>(`/admin/decisions/${id}/close`, { method: 'POST' }),
+
+  reopenDecision: (id: string) =>
+    request<{ decision: Decision }>(`/admin/decisions/${id}/reopen`, { method: 'POST' }),
 }

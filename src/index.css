@@ -20,6 +20,12 @@
   --color-green-soft: #4fa37f;
   --color-slate-body: #5b6178;
   --color-slate-dim: #8a90a3;
+  /* Status pair for decision records: open/pending vs settled/closed. Not
+   * decoration — reserved for this one semantic use, same rule as Signal
+   * Green elsewhere. Values match the dark-mode tokens already validated in
+   * the Marketplace Decision Ledger artifact, so both surfaces agree. */
+  --color-open: #e2896c;
+  --color-settled: #6fbba2;
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-sans: 'Public Sans', -apple-system, 'Segoe UI', sans-serif;

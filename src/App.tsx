@@ -10,6 +10,9 @@ import { Overview } from '@/pages/Overview'
 import { Entries } from '@/pages/Entries'
 import { Team } from '@/pages/Team'
 import { Settings } from '@/pages/Settings'
+import { Decisions } from '@/pages/Decisions'
+import { DecisionDetail } from '@/pages/DecisionDetail'
+import { NewDecision } from '@/pages/NewDecision'
 import { Toaster } from '@/components/ui/sonner'
 
 function Protected() {
@@ -48,6 +51,16 @@ export default function App() {
           <Route element={<Protected />}>
             <Route index element={<Overview />} />
             <Route path="entries" element={<Entries />} />
+            <Route path="decisions" element={<Decisions />} />
+            <Route
+              path="decisions/new"
+              element={
+                <OwnerOnly>
+                  <NewDecision />
+                </OwnerOnly>
+              }
+            />
+            <Route path="decisions/:id" element={<DecisionDetail />} />
             <Route
               path="team"
               element={

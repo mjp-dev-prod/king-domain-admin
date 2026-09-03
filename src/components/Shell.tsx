@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 const LINKS = [
   { to: '/', label: 'Overview', end: true },
   { to: '/entries', label: 'Entries' },
+  { to: '/decisions', label: 'Decisions' },
   { to: '/team', label: 'Team', ownerOnly: true },
 ]
 
