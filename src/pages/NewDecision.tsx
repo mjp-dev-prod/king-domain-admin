@@ -7,20 +7,36 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { MILESTONES, findMilestone } from '@/lib/milestones'
+
+const NONE_VALUE = '__none__'
 
 export function NewDecision() {
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [milestoneRef, setMilestoneRef] = useState('')
+  const [milestoneRef, setMilestoneRef] = useState(NONE_VALUE)
   const [submitting, setSubmitting] = useState(false)
+
+  const selectedMilestone = findMilestone(milestoneRef === NONE_VALUE ? null : milestoneRef)
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setSubmitting(true)
 
     try {
-      const result = await api.createDecision(title, description, milestoneRef)
+      const result = await api.createDecision(
+        title,
+        description,
+        milestoneRef === NONE_VALUE ? undefined : milestoneRef,
+      )
       toast.success('Decision posted')
       navigate(`/decisions/${result.decision.id}`)
     } catch (err) {
@@ -61,16 +77,22 @@ export function NewDecision() {
 
           <div className="space-y-2">
             <Label htmlFor="milestone">Milestone (optional)</Label>
-            <Input
-              id="milestone"
-              value={milestoneRef}
-              onChange={(e) => setMilestoneRef(e.target.value)}
-              placeholder="e.g. 03"
-              className="max-w-32"
-            />
-            <p className="text-xs text-muted-foreground">
-              Links this decision to a milestone in the Marketplace Decision Ledger, if relevant.
-            </p>
+            <Select value={milestoneRef} onValueChange={setMilestoneRef}>
+              <SelectTrigger id="milestone" className="w-full">
+                <SelectValue placeholder="No milestone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>No milestone</SelectItem>
+                {MILESTONES.map((m) => (
+                  <SelectItem key={m.ref} value={m.ref}>
+                    {m.ref} — {m.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedMilestone && (
+              <p className="text-xs text-muted-foreground">{selectedMilestone.summary}</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

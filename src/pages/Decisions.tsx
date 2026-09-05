@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
+import { findMilestone } from '@/lib/milestones'
 
 const STATUS_FILTERS: { value: DecisionStatus | ''; label: string }[] = [
   { value: '', label: 'All' },
@@ -118,7 +119,11 @@ export function Decisions() {
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   {decision.milestoneRef && (
-                    <span className="label text-gold">Milestone {decision.milestoneRef}</span>
+                    <span className="label text-gold">
+                      Milestone {decision.milestoneRef}
+                      {findMilestone(decision.milestoneRef) &&
+                        ` — ${findMilestone(decision.milestoneRef)!.title}`}
+                    </span>
                   )}
                   <span>{stanceSummary(decision.stanceCounts)}</span>
                   <span className="tabular">{formatDate(decision.createdAt)}</span>

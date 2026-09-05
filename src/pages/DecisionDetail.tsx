@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, Lock, LockOpen } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Loader2, Lock, LockOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, ApiError, type Decision, type Stance } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { DECISION_LEDGER_URL, findMilestone } from '@/lib/milestones'
 import {
   Dialog,
   DialogContent,
@@ -152,9 +153,6 @@ export function DecisionDetail() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          {decision.milestoneRef && (
-            <span className="label text-gold">Milestone {decision.milestoneRef}</span>
-          )}
           <span>
             Posted by {decision.createdBy.name || decision.createdBy.email} ·{' '}
             {formatDateTime(decision.createdAt)}
@@ -168,6 +166,31 @@ export function DecisionDetail() {
           </p>
         )}
       </div>
+
+      {decision.milestoneRef &&
+        (() => {
+          const milestone = findMilestone(decision.milestoneRef)
+          return (
+            <Card className="gap-1.5 border-gold/30 bg-gold/5 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="label text-gold">
+                  Milestone {decision.milestoneRef}
+                  {milestone && ` — ${milestone.title}`}
+                </p>
+                <a
+                  href={DECISION_LEDGER_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Full ledger
+                  <ExternalLink className="size-3" />
+                </a>
+              </div>
+              {milestone && <p className="text-sm text-muted-foreground">{milestone.summary}</p>}
+            </Card>
+          )
+        })()}
 
       <Card className="p-5">
         <p className="whitespace-pre-wrap text-sm leading-relaxed">{decision.description}</p>
