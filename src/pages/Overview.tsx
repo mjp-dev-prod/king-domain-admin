@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { api, type Stats } from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+
+const dailyChartConfig = {
+  count: { label: 'Signups', color: 'var(--color-gold)' },
+} satisfies ChartConfig
+
+function formatShortDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+}
 
 function StatTile({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
@@ -18,9 +28,6 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
   if (daily.length === 0) return null
   const peak = Math.max(...daily.map((d) => d.count))
 
-  const first = daily[0]
-  const last = daily[daily.length - 1]
-
   return (
     <Card className="p-5">
       <div className="mb-4 flex items-baseline justify-between">
@@ -28,33 +35,30 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
         <p className="tabular text-xs text-muted-foreground">peak {peak}</p>
       </div>
 
-      <div className="relative flex h-28 items-end gap-1.5 border-b border-border">
-        {/* Midline gridline gives the eye a scale reference beyond just the peak. */}
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-border/60" />
-
-        {daily.map((day) => (
-          <div
-            key={day.date}
-            className="group relative flex h-full flex-1 flex-col items-center justify-end gap-1"
-            // Touch devices get no hover, so the value is also the title.
-            title={`${day.date}: ${day.count}`}
-          >
-            <span className="tabular text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-              {day.count}
-            </span>
-            <div
-              className="w-full rounded-t-sm bg-gold transition-all duration-500 group-hover:bg-gold-soft"
-              style={{ height: `${peak > 0 ? Math.max(6, (day.count / peak) * 100) : 0}px` }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Axis ends, so the range is readable without hovering. */}
-      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-        <span>{first.date}</span>
-        {daily.length > 1 && <span>{last.date}</span>}
-      </div>
+      <ChartContainer config={dailyChartConfig} className="aspect-auto h-40 w-full">
+        <BarChart data={daily} margin={{ left: -20, right: 8 }}>
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            tickFormatter={formatShortDate}
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+          />
+          <YAxis
+            allowDecimals={false}
+            tickLine={false}
+            axisLine={false}
+            width={32}
+            domain={[0, (max: number) => Math.max(4, max)]}
+          />
+          <ChartTooltip
+            cursor={{ fill: 'var(--secondary)' }}
+            content={<ChartTooltipContent labelFormatter={(value) => formatShortDate(value as string)} />}
+          />
+          <Bar dataKey="count" fill="var(--color-gold)" radius={[3, 3, 0, 0]} maxBarSize={48} />
+        </BarChart>
+      </ChartContainer>
     </Card>
   )
 }
