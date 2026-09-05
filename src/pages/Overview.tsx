@@ -28,21 +28,24 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
         <p className="tabular text-xs text-muted-foreground">peak {peak}</p>
       </div>
 
-      <div className="flex h-28 items-end gap-1">
+      <div className="relative flex h-28 items-end gap-1.5 border-b border-border">
+        {/* Midline gridline gives the eye a scale reference beyond just the peak. */}
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-border/60" />
+
         {daily.map((day) => (
           <div
             key={day.date}
-            className="group relative flex-1"
+            className="group relative flex h-full flex-1 flex-col items-center justify-end gap-1"
             // Touch devices get no hover, so the value is also the title.
             title={`${day.date}: ${day.count}`}
           >
+            <span className="tabular text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+              {day.count}
+            </span>
             <div
-              className="rounded-sm bg-gold/70 transition-all duration-500 group-hover:bg-gold"
-              style={{ height: `${Math.max(4, (day.count / peak) * 112)}px` }}
+              className="w-full rounded-t-sm bg-gold transition-all duration-500 group-hover:bg-gold-soft"
+              style={{ height: `${peak > 0 ? Math.max(6, (day.count / peak) * 100) : 0}px` }}
             />
-            <div className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded border border-border bg-popover px-2 py-1 text-xs group-hover:block">
-              {day.date}: {day.count}
-            </div>
           </div>
         ))}
       </div>
