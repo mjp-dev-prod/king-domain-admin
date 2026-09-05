@@ -13,6 +13,7 @@ import { Settings } from '@/pages/Settings'
 import { Decisions } from '@/pages/Decisions'
 import { DecisionDetail } from '@/pages/DecisionDetail'
 import { NewDecision } from '@/pages/NewDecision'
+import { AppReleases } from '@/pages/AppReleases'
 import { Toaster } from '@/components/ui/sonner'
 
 function Protected() {
@@ -61,6 +62,7 @@ export default function App() {
               }
             />
             <Route path="decisions/:id" element={<DecisionDetail />} />
+            <Route path="app-releases" element={<AppReleases />} />
             <Route
               path="team"
               element={

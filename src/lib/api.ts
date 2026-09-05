@@ -61,6 +61,29 @@ export type Stats = {
   daily: { date: string; count: number }[]
 }
 
+export type AppReleaseStatus = 'draft' | 'published'
+
+export type AppReleaseChangelog = {
+  highlights: string[]
+  improvements: string[]
+  fixes: string[]
+}
+
+export type AppRelease = {
+  id: string
+  version: string
+  apkUrl: string | null
+  changelog: AppReleaseChangelog | null
+  status: AppReleaseStatus
+  isLatest: boolean
+  forceUpdate: boolean
+  forceUpdateRequested: boolean
+  minVersion: string
+  createdAt: string
+  publishedAt: string | null
+  forceUpdateActivatedAt: string | null
+}
+
 export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
@@ -221,4 +244,33 @@ export const api = {
 
   reopenDecision: (id: string) =>
     request<{ decision: Decision }>(`/admin/decisions/${id}/reopen`, { method: 'POST' }),
+
+  appReleases: () => request<{ releases: AppRelease[] }>('/admin/app-releases'),
+
+  createAppRelease: (params: {
+    version: string
+    changelog: AppReleaseChangelog
+    forceUpdate: boolean
+    minVersion?: string
+  }) =>
+    request<{ release: AppRelease }>('/admin/app-releases', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  publishAppRelease: (id: string) =>
+    request<{ release: AppRelease }>(`/admin/app-releases/${id}/publish`, { method: 'POST' }),
+
+  activateForceUpdate: (id: string) =>
+    request<{ release: AppRelease }>(`/admin/app-releases/${id}/activate-force-update`, {
+      method: 'POST',
+    }),
+
+  deactivateForceUpdate: (id: string) =>
+    request<{ release: AppRelease }>(`/admin/app-releases/${id}/deactivate-force-update`, {
+      method: 'POST',
+    }),
+
+  deleteAppRelease: (id: string) =>
+    request<{ ok: true }>(`/admin/app-releases/${id}`, { method: 'DELETE' }),
 }
