@@ -177,15 +177,13 @@ export function DecisionDetail() {
                   Milestone {decision.milestoneRef}
                   {milestone && ` — ${milestone.title}`}
                 </p>
-                <a
-                  href={DECISION_LEDGER_URL}
-                  target="_blank"
-                  rel="noreferrer"
+                <Link
+                  to={DECISION_LEDGER_URL}
                   className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                 >
                   Full ledger
                   <ExternalLink className="size-3" />
-                </a>
+                </Link>
               </div>
               {milestone && <p className="text-sm text-muted-foreground">{milestone.summary}</p>}
             </Card>

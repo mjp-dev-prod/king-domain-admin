@@ -62,5 +62,10 @@ export function findMilestone(ref: string | null): Milestone | undefined {
   return MILESTONES.find((m) => m.ref === ref)
 }
 
-/** Where shareholders go for the full reasoning behind a milestone's status. */
-export const DECISION_LEDGER_URL = 'https://claude.ai/code/artifact/1c48c145-0b28-4a2e-abbc-556b20eb72f5'
+/**
+ * Where shareholders go for the full reasoning behind a milestone's status.
+ * An in-app route, not the original Claude artifact — that artifact was
+ * private to one Claude account, so it couldn't actually be shared with
+ * other shareholders. See src/pages/Ledger.tsx and src/lib/ledgerData.ts.
+ */
+export const DECISION_LEDGER_URL = '/ledger'

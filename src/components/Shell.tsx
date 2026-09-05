@@ -8,6 +8,7 @@ const LINKS = [
   { to: '/', label: 'Overview', end: true },
   { to: '/entries', label: 'Entries' },
   { to: '/decisions', label: 'Decisions' },
+  { to: '/ledger', label: 'Ledger' },
   { to: '/app-releases', label: 'App Releases' },
   { to: '/team', label: 'Team', ownerOnly: true },
 ]

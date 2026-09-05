@@ -14,6 +14,7 @@ import { Decisions } from '@/pages/Decisions'
 import { DecisionDetail } from '@/pages/DecisionDetail'
 import { NewDecision } from '@/pages/NewDecision'
 import { AppReleases } from '@/pages/AppReleases'
+import { Ledger } from '@/pages/Ledger'
 import { Toaster } from '@/components/ui/sonner'
 
 function Protected() {
@@ -63,6 +64,7 @@ export default function App() {
             />
             <Route path="decisions/:id" element={<DecisionDetail />} />
             <Route path="app-releases" element={<AppReleases />} />
+            <Route path="ledger" element={<Ledger />} />
             <Route
               path="team"
               element={
