@@ -1,4 +1,6 @@
-import { LEDGER_MILESTONES, LEDGER_ADDENDUM, type MilestoneStatus } from '@/lib/ledgerData'
+import { useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { LEDGER_MILESTONES, LEDGER_ADDENDUM, type LedgerMilestone, type MilestoneStatus } from '@/lib/ledgerData'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -13,6 +15,79 @@ const STATUS_STYLES: Record<MilestoneStatus, string> = {
   settled: 'border-settled/40 text-settled',
   partial: 'border-gold/40 text-gold',
   open: 'border-open/40 text-open',
+}
+
+function MilestoneCard({
+  milestone: m,
+  defaultOpen,
+}: {
+  milestone: LedgerMilestone
+  defaultOpen: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <Card className="gap-0 overflow-hidden p-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full cursor-pointer items-start justify-between gap-3 p-5 text-left"
+      >
+        <div className="space-y-1">
+          <p className="label text-gold">Milestone {m.ref}</p>
+          <h3 className="font-display text-lg font-semibold">{m.title}</h3>
+          <p className="text-sm text-muted-foreground">{m.question}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Badge variant="outline" className={STATUS_STYLES[m.status]}>
+            {STATUS_LABEL[m.status]}
+          </Badge>
+          <ChevronDown
+            className={cn(
+              'size-4 text-muted-foreground transition-transform duration-200',
+              open && 'rotate-180',
+            )}
+          />
+        </div>
+      </button>
+
+      <div
+        style={{
+          maxHeight: open ? (contentRef.current?.scrollHeight ?? 2000) : 0,
+        }}
+        className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+      >
+        <div ref={contentRef} className="space-y-4 border-t border-border p-5">
+          {m.decisionSummary && (
+            <div className="rounded-md border border-gold/30 bg-gold/5 p-3">
+              <p className="mb-1 text-xs font-semibold text-gold">
+                Decision{m.decisionDate ? ` — ${m.decisionDate}` : ''}
+              </p>
+              <p className="text-sm leading-relaxed">{m.decisionSummary}</p>
+            </div>
+          )}
+
+          {m.sections.map((section, i) => (
+            <div key={i}>
+              <p className="mb-1.5 text-sm font-semibold">{section.heading}</p>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {section.items.map((item, j) => (
+                  <li key={j}>· {item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <div className="border-t border-border pt-3">
+            <p className="label mb-1 text-muted-foreground">Weekly Log</p>
+            <p className="text-sm text-muted-foreground">{m.weeklyLog}</p>
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
 }
 
 export function Ledger() {
@@ -71,47 +146,7 @@ export function Ledger() {
         <h2 className="font-display text-xl font-semibold">The Seven Milestones</h2>
 
         {LEDGER_MILESTONES.map((m) => (
-          <details key={m.ref} className="group" open={m.status !== 'open'}>
-            <Card className="gap-0 overflow-hidden p-0">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
-                <div className="space-y-1">
-                  <p className="label text-gold">Milestone {m.ref}</p>
-                  <h3 className="font-display text-lg font-semibold">{m.title}</h3>
-                  <p className="text-sm text-muted-foreground">{m.question}</p>
-                </div>
-                <Badge variant="outline" className={cn('shrink-0', STATUS_STYLES[m.status])}>
-                  {STATUS_LABEL[m.status]}
-                </Badge>
-              </summary>
-
-              <div className="space-y-4 border-t border-border p-5">
-                {m.decisionSummary && (
-                  <div className="rounded-md border border-gold/30 bg-gold/5 p-3">
-                    <p className="mb-1 text-xs font-semibold text-gold">
-                      Decision{m.decisionDate ? ` — ${m.decisionDate}` : ''}
-                    </p>
-                    <p className="text-sm leading-relaxed">{m.decisionSummary}</p>
-                  </div>
-                )}
-
-                {m.sections.map((section, i) => (
-                  <div key={i}>
-                    <p className="mb-1.5 text-sm font-semibold">{section.heading}</p>
-                    <ul className="space-y-1 text-sm text-muted-foreground">
-                      {section.items.map((item, j) => (
-                        <li key={j}>· {item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-
-                <div className="border-t border-border pt-3">
-                  <p className="label mb-1 text-muted-foreground">Weekly Log</p>
-                  <p className="text-sm text-muted-foreground">{m.weeklyLog}</p>
-                </div>
-              </div>
-            </Card>
-          </details>
+          <MilestoneCard key={m.ref} milestone={m} defaultOpen={m.status !== 'open'} />
         ))}
       </div>
 
