@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { Sentry } from '@/lib/sentry'
 
 const ROLE_FILTERS = [
   { value: '', label: 'Everyone' },
@@ -57,7 +58,10 @@ export function Entries() {
     api
       .entries({ page, search: debounced, role })
       .then(setData)
-      .catch(() => setData({ entries: [], total: 0, pages: 1 }))
+      .catch((err: unknown) => {
+        Sentry.captureException(err, { tags: { page: 'entries', request: 'list' } })
+        setData({ entries: [], total: 0, pages: 1 })
+      })
       .finally(() => setLoading(false))
   }, [page, debounced, role])
 

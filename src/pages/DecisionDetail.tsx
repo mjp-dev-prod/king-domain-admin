@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { DECISION_LEDGER_URL, findMilestone } from '@/lib/milestones'
+import { Sentry } from '@/lib/sentry'
 import {
   Dialog,
   DialogContent,
@@ -60,7 +61,10 @@ export function DecisionDetail() {
     api
       .decision(id)
       .then((d) => setDecision(d.decision))
-      .catch(() => setDecision(null))
+      .catch((err: unknown) => {
+        Sentry.captureException(err, { tags: { page: 'decision-detail', request: 'get' } })
+        setDecision(null)
+      })
       .finally(() => setLoading(false))
   }
 

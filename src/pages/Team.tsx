@@ -3,6 +3,7 @@ import { Copy, Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, ApiError, type AdminUser } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { Sentry } from '@/lib/sentry'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,7 +48,10 @@ export function Team() {
     api
       .admins()
       .then((d) => setAdmins(d.admins))
-      .catch(() => setAdmins([]))
+      .catch((err: unknown) => {
+        Sentry.captureException(err, { tags: { page: 'team', request: 'list' } })
+        setAdmins([])
+      })
   }
 
   useEffect(load, [])

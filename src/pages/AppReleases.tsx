@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Sentry } from '@/lib/sentry'
 
 const STATUS_STYLES: Record<string, string> = {
   draft: 'border-border text-muted-foreground',
@@ -62,7 +63,10 @@ export function AppReleases() {
     api
       .appReleases()
       .then((d) => setReleases(d.releases))
-      .catch(() => setReleases([]))
+      .catch((err: unknown) => {
+        Sentry.captureException(err, { tags: { page: 'app-releases', request: 'list' } })
+        setReleases([])
+      })
   }
 
   useEffect(load, [])

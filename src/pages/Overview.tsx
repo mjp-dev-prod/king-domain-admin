@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { api, type Stats } from '@/lib/api'
+import { api, ApiError, type Stats } from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import { Sentry } from '@/lib/sentry'
 
 const dailyChartConfig = {
   count: { label: 'Signups', color: 'var(--color-gold)' },
@@ -136,7 +137,10 @@ function Notes() {
     api
       .notes()
       .then((d) => setNotes(d.notes))
-      .catch(() => setNotes([]))
+      .catch((err: unknown) => {
+        Sentry.captureException(err, { tags: { page: 'overview', request: 'notes' } })
+        setNotes([])
+      })
   }, [])
 
   return (
@@ -178,7 +182,24 @@ export function Overview() {
     api
       .stats()
       .then(setStats)
-      .catch(() => setError('Could not load stats.'))
+      .catch((err: unknown) => {
+        // Report the real cause (status code, message, or a raw network
+        // failure) to Sentry — the UI still shows a short message, but
+        // this is what actually lets us diagnose a device-specific report
+        // like "works everywhere except this one iPhone" instead of only
+        // seeing a screenshot of a generic string.
+        Sentry.captureException(err, { tags: { page: 'overview', request: 'stats' } })
+
+        if (err instanceof ApiError) {
+          setError(
+            err.status === 0
+              ? 'Could not reach the server. Check your connection and try again.'
+              : `Could not load stats (${err.status}): ${err.message}`,
+          )
+        } else {
+          setError('Could not load stats — an unexpected error occurred.')
+        }
+      })
   }, [])
 
   if (error) return <p className="text-sm text-destructive">{error}</p>

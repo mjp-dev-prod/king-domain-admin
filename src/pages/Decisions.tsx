@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { findMilestone } from '@/lib/milestones'
+import { Sentry } from '@/lib/sentry'
 
 const STATUS_FILTERS: { value: DecisionStatus | ''; label: string }[] = [
   { value: '', label: 'All' },
@@ -53,7 +54,10 @@ export function Decisions() {
     api
       .decisions({ page, status: status || undefined })
       .then(setData)
-      .catch(() => setData({ decisions: [], total: 0, pages: 1 }))
+      .catch((err: unknown) => {
+        Sentry.captureException(err, { tags: { page: 'decisions', request: 'list' } })
+        setData({ decisions: [], total: 0, pages: 1 })
+      })
       .finally(() => setLoading(false))
   }, [page, status])
 
