@@ -1,3 +1,5 @@
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from './tokenStore'
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000'
 
 export type AdminRole = 'owner' | 'admin'
@@ -92,20 +94,67 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+// Auth moved off a cross-site session cookie — Safari/iOS's ITP was
+// rejecting it in production (Render proxies through Cloudflare, which
+// interfered with the exact SameSite=None; Secure attributes Safari
+// requires), while every other browser tolerated the same cookie fine.
+// The access token now travels as `Authorization: Bearer <token>` instead,
+// which has no cross-site cookie policy to run afoul of.
+let refreshing: Promise<string> | null = null
+
+async function refreshAccessToken(): Promise<string> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) throw new ApiError('Not signed in.', 401)
+
+  const res = await fetch(`${API_BASE}/admin/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  })
+
+  if (!res.ok) {
+    clearTokens()
+    throw new ApiError('Session expired. Please sign in again.', 401)
+  }
+
+  const data = (await res.json()) as { accessToken: string }
+  setTokens({ accessToken: data.accessToken })
+  return data.accessToken
+}
+
+async function request<T>(path: string, init?: RequestInit, isRetry = false): Promise<T> {
+  const accessToken = getAccessToken()
+
   let response: Response
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...init,
-      // Session lives in an httpOnly cookie on a different origin.
-      credentials: 'include',
       headers: {
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...init?.headers,
       },
     })
   } catch {
     throw new ApiError('Could not reach the server.', 0)
+  }
+
+  // A 401 on anything other than the auth endpoints themselves means the
+  // access token expired (15min lifetime) — silently refresh once and
+  // retry, rather than bouncing the admin to the login screen every 15
+  // minutes. Concurrent requests share one in-flight refresh instead of
+  // each independently hitting /auth/refresh.
+  if (response.status === 401 && !isRetry && !path.startsWith('/admin/auth/')) {
+    try {
+      refreshing ??= refreshAccessToken().finally(() => {
+        refreshing = null
+      })
+      await refreshing
+      return request<T>(path, init, true)
+    } catch {
+      // Fall through to the normal error handling below with the original
+      // 401 — refreshAccessToken already cleared tokens if it failed.
+    }
   }
 
   if (response.status === 204) return undefined as T
@@ -119,27 +168,42 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T
 }
 
+type AuthResponse = { user: AdminUser; accessToken: string; refreshToken: string; expiresIn: number }
+
 export const api = {
   me: () => request<{ user: AdminUser }>('/admin/auth/me'),
 
-  login: (email: string, password: string) =>
-    request<{ user: AdminUser }>('/admin/auth/login', {
+  login: async (email: string, password: string) => {
+    const result = await request<AuthResponse>('/admin/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    }),
+    })
+    setTokens(result)
+    return result
+  },
 
-  logout: () => request<{ ok: true }>('/admin/auth/logout', { method: 'POST' }),
+  logout: async () => {
+    const refreshToken = getRefreshToken()
+    await request<{ ok: true }>('/admin/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    }).catch(() => {})
+    clearTokens()
+  },
 
   checkInvite: (token: string) =>
     request<{ email: string; name: string | null }>(
       `/admin/auth/invite?token=${encodeURIComponent(token)}`,
     ),
 
-  acceptInvite: (token: string, password: string, name?: string) =>
-    request<{ user: AdminUser }>('/admin/auth/invite/accept', {
+  acceptInvite: async (token: string, password: string, name?: string) => {
+    const result = await request<AuthResponse>('/admin/auth/invite/accept', {
       method: 'POST',
       body: JSON.stringify({ token, password, name }),
-    }),
+    })
+    setTokens(result)
+    return result
+  },
 
   forgotPassword: (email: string) =>
     request<{ ok: true; message: string }>('/admin/auth/forgot-password', {

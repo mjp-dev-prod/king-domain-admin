@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { api, type AdminUser } from './api'
+import { getAccessToken } from './tokenStore'
 
 type AuthState = {
   user: AdminUser | null
@@ -21,10 +22,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // No stored token at all is the common case (never logged in, or fully
+    // signed out) — skip the network round trip entirely rather than firing
+    // a request that's guaranteed to 401.
+    if (!getAccessToken()) {
+      setLoading(false)
+      return
+    }
+
     api
       .me()
       .then(({ user }) => setUser(user))
-      // A 401 here is the normal "not signed in" case, not an error worth surfacing.
+      // A 401 here (expired refresh token too) is the normal "not signed
+      // in" case, not an error worth surfacing.
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
