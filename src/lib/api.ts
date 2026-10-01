@@ -86,6 +86,31 @@ export type AppRelease = {
   forceUpdateActivatedAt: string | null
 }
 
+export type ProofStatus = 'pending' | 'verified'
+
+export type ProofItem = {
+  id: string
+  category: string
+  title: string
+  /** Short-lived (5 min) signed URL to the private file; re-fetch the item when it expires. */
+  fileUrl: string | null
+  fileName: string | null
+  status: ProofStatus
+  reviewedById: string | null
+  reviewedAt: string | null
+  createdAt: string
+  talent: {
+    id: string
+    fullName: string
+    email: string
+    headline: string
+    bio: string
+    skillCategories: string[]
+  } | null
+}
+
+export type ProofCounts = { pending: number; verified: number }
+
 export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
@@ -122,6 +147,20 @@ async function refreshAccessToken(): Promise<string> {
   return data.accessToken
 }
 
+// Endpoints that never carry (or can't use) an access token, so a 401 there is a
+// real answer, not an expired session. /admin/auth/me and change-password
+// are authenticated and DO need the silent refresh: without it, reloading
+// the dashboard after the 15-minute access token expired signed the admin
+// out even though their refresh token was still valid.
+const NO_REFRESH_PATHS = [
+  '/admin/auth/login',
+  '/admin/auth/refresh',
+  '/admin/auth/logout',
+  '/admin/auth/invite',
+  '/admin/auth/forgot-password',
+  '/admin/auth/reset-password',
+]
+
 async function request<T>(path: string, init?: RequestInit, isRetry = false): Promise<T> {
   const accessToken = getAccessToken()
 
@@ -139,12 +178,12 @@ async function request<T>(path: string, init?: RequestInit, isRetry = false): Pr
     throw new ApiError('Could not reach the server.', 0)
   }
 
-  // A 401 on anything other than the auth endpoints themselves means the
+  // A 401 on anything other than the endpoints above means the
   // access token expired (15min lifetime) — silently refresh once and
   // retry, rather than bouncing the admin to the login screen every 15
   // minutes. Concurrent requests share one in-flight refresh instead of
   // each independently hitting /auth/refresh.
-  if (response.status === 401 && !isRetry && !path.startsWith('/admin/auth/')) {
+  if (response.status === 401 && !isRetry && !NO_REFRESH_PATHS.some((p) => path.startsWith(p))) {
     try {
       refreshing ??= refreshAccessToken().finally(() => {
         refreshing = null
@@ -337,4 +376,23 @@ export const api = {
 
   deleteAppRelease: (id: string) =>
     request<{ ok: true }>(`/admin/app-releases/${id}`, { method: 'DELETE' }),
+
+  proofItems: (status: ProofStatus) =>
+    request<{ proofItems: ProofItem[] }>(`/admin/proof-items?status=${status}`),
+
+  proofItem: (id: string) => request<{ proofItem: ProofItem }>(`/admin/proof-items/${id}`),
+
+  proofCounts: () => request<ProofCounts>('/admin/proof-items/counts'),
+
+  approveProof: (id: string) =>
+    request<{ proofItem: ProofItem }>(`/admin/proof-items/${id}/approve`, { method: 'POST' }),
+
+  rejectProof: (id: string, reason: string) =>
+    request<{ ok: true }>(`/admin/proof-items/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
 }
+
+/** Fired after a review decision so the navigation badge refreshes its count. */
+export const PROOF_COUNTS_CHANGED = 'kd:proof-counts-changed'

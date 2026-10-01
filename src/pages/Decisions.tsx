@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { findMilestone } from '@/lib/milestones'
+import { FilterTabs } from '@/components/FilterTabs'
 import { Sentry } from '@/lib/sentry'
 
 const STATUS_FILTERS: { value: DecisionStatus | ''; label: string }[] = [
@@ -64,25 +65,15 @@ export function Decisions() {
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1">
-          {STATUS_FILTERS.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => {
-                setStatus(filter.value)
-                setPage(1)
-              }}
-              className={cn(
-                'rounded-md px-2.5 py-1.5 text-sm transition-colors sm:px-3',
-                status === filter.value
-                  ? 'bg-secondary text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
+        <FilterTabs
+          label="Decision status"
+          options={STATUS_FILTERS}
+          value={status}
+          onChange={(value) => {
+            setStatus(value)
+            setPage(1)
+          }}
+        />
 
         {user?.role === 'owner' && (
           <Button asChild size="sm">

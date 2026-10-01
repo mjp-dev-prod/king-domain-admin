@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Sentry } from '@/lib/sentry'
+import { FilterTabs } from '@/components/FilterTabs'
 
 const ROLE_FILTERS = [
   { value: '', label: 'Everyone' },
@@ -79,25 +80,15 @@ export function Entries() {
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <div className="flex gap-1">
-            {ROLE_FILTERS.map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => {
-                  setRole(filter.value)
-                  setPage(1)
-                }}
-                className={cn(
-                  'rounded-md px-2.5 py-1.5 text-sm transition-colors sm:px-3',
-                  role === filter.value
-                    ? 'bg-secondary text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
+          <FilterTabs
+            label="Signup side"
+            options={ROLE_FILTERS}
+            value={role}
+            onChange={(value) => {
+              setRole(value)
+              setPage(1)
+            }}
+          />
 
           <Button variant="outline" asChild className="shrink-0">
             <a href={api.exportUrl({ search: debounced, role })}>

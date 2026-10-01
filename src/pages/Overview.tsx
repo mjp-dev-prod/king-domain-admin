@@ -37,7 +37,7 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
       </div>
 
       <ChartContainer config={dailyChartConfig} className="aspect-auto h-40 w-full">
-        <BarChart data={daily} margin={{ left: -20, right: 8 }}>
+        <BarChart data={daily} margin={{ left: 0, right: 8 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -45,12 +45,14 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
             tickLine={false}
             axisLine={false}
             tickMargin={8}
+            minTickGap={28}
+            interval="preserveStartEnd"
           />
           <YAxis
             allowDecimals={false}
             tickLine={false}
             axisLine={false}
-            width={32}
+            width={28}
             domain={[0, (max: number) => Math.max(4, max)]}
           />
           <ChartTooltip
