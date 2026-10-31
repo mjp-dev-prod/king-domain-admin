@@ -145,6 +145,13 @@ export type ShortlistDetail = {
   limits: { min: number; max: number }
 }
 
+export type SafetyReportRow = { id: string; status: string; reason: string; createdAt: string; preview: string; liveContract: boolean }
+export type SafetyReportDetail = {
+  report: { id: string; status: string; reason: string; note: string | null; createdAt: string; handledNote: string | null; reportedBy: string; reported: string }
+  messages: { id: string; from: string; kind: string; body: string; at: string; flagged: boolean; edited: boolean; originalBody: string | null }[]
+  liveContract: boolean
+}
+
 export type OnCallShift ={ id: string; startsAt: string; endsAt: string; admin: { id: string; name: string | null; email: string } }
 export type OpsAlert = { id: string; title: string; slackSent: boolean; emailedTo: string[] }
 
@@ -529,6 +536,13 @@ export const api = {
 
   identityNotYet: (id: string, body: { reasonCode: string; note?: string }) =>
     request<{ ok: true }>(`/admin/identity-checks/${id}/not-yet`, { method: 'POST', body: JSON.stringify(body) }),
+
+  safetyReports: (status: 'open' | 'handled') => request<{ reports: SafetyReportRow[] }>(`/admin/safety-reports?status=${status}`),
+
+  safetyReport: (id: string) => request<SafetyReportDetail>(`/admin/safety-reports/${id}`),
+
+  handleSafetyReport: (id: string, body: { action: 'dismiss' | 'actioned'; note?: string }) =>
+    request<{ ok: true }>(`/admin/safety-reports/${id}/handle`, { method: 'POST', body: JSON.stringify(body) }),
 
   jobPosts: () => request<{ posts: JobPostRow[]; reasons: PostReason[] }>('/admin/job-posts'),
 
