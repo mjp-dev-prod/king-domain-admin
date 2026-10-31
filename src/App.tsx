@@ -16,6 +16,9 @@ import { NewDecision } from '@/pages/NewDecision'
 import { AppReleases } from '@/pages/AppReleases'
 import { Ledger } from '@/pages/Ledger'
 import { ProofReview } from '@/pages/ProofReview'
+import { Inbox } from '@/pages/Inbox'
+import { IdentityReview } from '@/pages/IdentityReview'
+import { Audit } from '@/pages/Audit'
 import { Toaster } from '@/components/ui/sonner'
 import { Sentry } from '@/lib/sentry'
 
@@ -67,6 +70,10 @@ export default function App() {
             <Route path="/accept-invite" element={<AcceptInvite />} />
 
             <Route element={<Protected />}>
+              <Route path="inbox" element={<Inbox />} />
+              <Route path="identity-checks" element={<IdentityReview />} />
+              <Route path="identity-checks/:id" element={<IdentityReview />} />
+              <Route path="audit" element={<Audit />} />
               <Route index element={<Overview />} />
               <Route path="entries" element={<Entries />} />
               <Route path="decisions" element={<Decisions />} />

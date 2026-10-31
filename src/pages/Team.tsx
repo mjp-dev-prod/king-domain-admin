@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Copy, Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, ApiError, type AdminUser } from '@/lib/api'
+import { api, ApiError, type AdminUser, type Skill } from '@/lib/api'
+import { CapabilityEditor } from '@/components/team/CapabilityEditor'
+import { OnCallPanel } from '@/components/team/OnCallPanel'
 import { useAuth } from '@/lib/auth'
 import { Sentry } from '@/lib/sentry'
 import { Button } from '@/components/ui/button'
@@ -37,6 +39,7 @@ const STATUS_STYLES: Record<string, string> = {
 export function Team() {
   const { user } = useAuth()
   const [admins, setAdmins] = useState<AdminUser[] | null>(null)
+  const [skills, setSkills] = useState<Skill[]>([])
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -55,6 +58,9 @@ export function Team() {
   }
 
   useEffect(load, [])
+  useEffect(() => {
+    api.skills().then((r) => setSkills(r.skills)).catch(() => setSkills([]))
+  }, [])
 
   async function onInvite(event: FormEvent) {
     event.preventDefault()
@@ -225,6 +231,27 @@ export function Team() {
               </Card>
             ))}
           </div>
+
+          <Card className="space-y-4 p-4">
+            <div>
+              <p className="font-medium">Roles</p>
+              <p className="text-sm text-muted-foreground">What each person may do. Without a role they can read the dashboard but not act.</p>
+            </div>
+            {admins
+              .filter((a) => a.status === 'active')
+              .map((a) => (
+                <div key={a.id} className="space-y-2 border-t border-border pt-3 first:border-t-0 first:pt-0">
+                  <p className="text-sm font-medium">{a.name ?? a.email}</p>
+                  <CapabilityEditor
+                    admin={a}
+                    skills={skills}
+                    onSaved={(updated) => setAdmins((list) => (list ? list.map((x) => (x.id === updated.id ? updated : x)) : list))}
+                  />
+                </div>
+              ))}
+          </Card>
+
+          <OnCallPanel admins={admins} />
         </>
       )}
 

@@ -2,19 +2,23 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogOut, Menu, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
-import { api, PROOF_COUNTS_CHANGED } from '@/lib/api'
+import { api, PROOF_COUNTS_CHANGED, type AdminCapability } from '@/lib/api'
+import { can } from '@/lib/capabilities'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
-type NavItem = { to: string; label: string; end?: boolean; ownerOnly?: boolean; badge?: 'proof' }
+type NavItem = { to: string; label: string; end?: boolean; ownerOnly?: boolean; badge?: 'proof'; capability?: AdminCapability }
 
 const LINKS: NavItem[] = [
+  { to: '/inbox', label: 'Inbox' },
   { to: '/', label: 'Overview', end: true },
   { to: '/entries', label: 'Entries' },
   { to: '/proof-review', label: 'Proof review', badge: 'proof' },
+  { to: '/identity-checks', label: 'Identity', capability: 'checker' },
   { to: '/decisions', label: 'Decisions' },
   { to: '/ledger', label: 'Ledger' },
+  { to: '/audit', label: 'Audit log', capability: 'shareholder' },
   { to: '/app-releases', label: 'App Releases' },
   { to: '/team', label: 'Team', ownerOnly: true },
 ]
@@ -56,7 +60,7 @@ export function Shell() {
   const { user, signOut } = useAuth()
   const pending = usePendingProofCount()
   const [menuOpen, setMenuOpen] = useState(false)
-  const links = LINKS.filter((l) => !l.ownerOnly || user?.role === 'owner')
+  const links = LINKS.filter((l) => (!l.ownerOnly || user?.role === 'owner') && (!l.capability || can(user, l.capability)))
 
   return (
     <div className="min-h-dvh">

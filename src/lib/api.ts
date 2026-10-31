@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000'
 export type AdminRole = 'owner' | 'admin'
 export type AdminStatus = 'invited' | 'active' | 'revoked'
 export type WaitlistRole = 'talent' | 'client'
+export type AdminCapability = 'reviewer' | 'checker' | 'safety' | 'disputes' | 'finance' | 'support' | 'shareholder'
 
 export type AdminUser = {
   id: string
@@ -12,9 +13,64 @@ export type AdminUser = {
   name: string | null
   role: AdminRole
   status: AdminStatus
+  capabilities: AdminCapability[]
+  reviewerSkills: string[]
   lastLoginAt: string | null
   createdAt: string
 }
+
+export type StartProofField = { key: string; label: string; kind: 'files' | 'image' | 'video' | 'text' | 'link'; min: number; max: number }
+export type Skill = { key: string; label: string; category: string; open: boolean; startProof: StartProofField[] }
+export type SkillCategory = { key: string; label: string }
+
+export type QueueSummary = {
+  key: string
+  label: string
+  path: string
+  capability: AdminCapability
+  targetMinutes: number
+  defaultWhenLate: string
+  open: number
+  overdue: number
+  oldestWaitingMinutes: number | null
+  p50Minutes: number | null
+  p90Minutes: number | null
+  sample: number
+}
+
+export type AuditEvent = {
+  id: string
+  action: string
+  subjectType: string
+  subjectId: string
+  reasonCode: string | null
+  note: string | null
+  details: unknown
+  actorRole: string
+  createdAt: string
+  actor: { id: string; name: string | null; email: string }
+}
+
+export type IdentityStatus = 'pending' | 'verified' | 'notYet'
+export type IdentityReason = { code: string; label: string }
+export type IdentityCheck = {
+  id: string
+  document: 'ninSlip' | 'passport' | 'cac'
+  claimedName: string
+  claimedDateOfBirth: string | null
+  status: IdentityStatus
+  legalName: string | null
+  reasonCode: string | null
+  note: string | null
+  createdAt: string
+  reviewedAt: string | null
+  user: { id: string; fullName: string; email: string; role: string; clientKind: string | null }
+  documentUrl: string | null
+  videoUrl: string | null
+}
+
+export type OnCallShift ={ id: string; startsAt: string; endsAt: string; admin: { id: string; name: string | null; email: string } }
+export type OpsAlert = { id: string; title: string; slackSent: boolean; emailedTo: string[] }
 
 export type WaitlistEntry = {
   id: string
@@ -383,6 +439,49 @@ export const api = {
   proofItem: (id: string) => request<{ proofItem: ProofItem }>(`/admin/proof-items/${id}`),
 
   proofCounts: () => request<ProofCounts>('/admin/proof-items/counts'),
+
+  identityChecks: (status: IdentityStatus) =>
+    request<{ checks: IdentityCheck[]; reasons: IdentityReason[] }>(`/admin/identity-checks?status=${status}`),
+
+  identityCheck: (id: string) =>
+    request<{ check: IdentityCheck; reasons: IdentityReason[] }>(`/admin/identity-checks/${id}`),
+
+  identityCounts: () => request<Record<IdentityStatus, number>>('/admin/identity-checks/counts'),
+
+  approveIdentity: (id: string, body: { legalName: string; dateOfBirth?: string }) =>
+    request<{ ok: true }>(`/admin/identity-checks/${id}/approve`, { method: 'POST', body: JSON.stringify(body) }),
+
+  identityNotYet: (id: string, body: { reasonCode: string; note?: string }) =>
+    request<{ ok: true }>(`/admin/identity-checks/${id}/not-yet`, { method: 'POST', body: JSON.stringify(body) }),
+
+  skills: () => request<{ categories: SkillCategory[]; skills: Skill[] }>('/skills'),
+
+  inbox: () => request<{ queues: QueueSummary[] }>('/admin/inbox'),
+
+  setQueueTarget: (key: string, body: { targetMinutes: number; defaultWhenLate: string }) =>
+    request<{ target: { queueKey: string; targetMinutes: number; defaultWhenLate: string } }>(
+      `/admin/inbox/targets/${encodeURIComponent(key)}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+
+  audit: (params: { action?: string; subjectId?: string; actorId?: string; before?: string; limit?: number } = {}) => {
+    const q = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') q.set(k, String(v))
+    return request<{ events: AuditEvent[]; nextBefore: string | null }>(`/admin/audit?${q}`)
+  },
+
+  onCall: (from?: string) =>
+    request<{ shifts: OnCallShift[] }>(`/admin/on-call${from ? `?from=${encodeURIComponent(from)}` : ''}`),
+
+  addOnCall: (body: { adminId: string; startsAt: string; endsAt: string }) =>
+    request<{ shift: { id: string } }>('/admin/on-call', { method: 'POST', body: JSON.stringify(body) }),
+
+  removeOnCall: (id: string) => request<{ ok: true }>(`/admin/on-call/${id}`, { method: 'DELETE' }),
+
+  setCapabilities: (id: string, body: { capabilities: AdminCapability[]; reviewerSkills: string[] }) =>
+    request<{ admin: AdminUser }>(`/admin/admins/${id}/capabilities`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  testAlert: () => request<{ alert: OpsAlert }>('/admin/alerts/test', { method: 'POST' }),
 
   approveProof: (id: string) =>
     request<{ proofItem: ProofItem }>(`/admin/proof-items/${id}/approve`, { method: 'POST' }),
