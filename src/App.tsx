@@ -18,6 +18,8 @@ import { Ledger } from '@/pages/Ledger'
 import { ProofReview } from '@/pages/ProofReview'
 import { Inbox } from '@/pages/Inbox'
 import { IdentityReview } from '@/pages/IdentityReview'
+import { Authenticity } from '@/pages/Authenticity'
+import { SkillReviews } from '@/pages/SkillReviews'
 import { Audit } from '@/pages/Audit'
 import { Toaster } from '@/components/ui/sonner'
 import { Sentry } from '@/lib/sentry'
@@ -73,6 +75,10 @@ export default function App() {
               <Route path="inbox" element={<Inbox />} />
               <Route path="identity-checks" element={<IdentityReview />} />
               <Route path="identity-checks/:id" element={<IdentityReview />} />
+              <Route path="authenticity" element={<Authenticity />} />
+              <Route path="authenticity/:id" element={<Authenticity />} />
+              <Route path="skill-reviews" element={<SkillReviews />} />
+              <Route path="skill-reviews/:id" element={<SkillReviews />} />
               <Route path="audit" element={<Audit />} />
               <Route index element={<Overview />} />
               <Route path="entries" element={<Entries />} />

@@ -69,6 +69,37 @@ export type IdentityCheck = {
   videoUrl: string | null
 }
 
+export type SkillFile = { id: string; role: 'output' | 'working' | 'draft' | 'walkthrough'; pieceId: string | null; name: string; contentType: string; sizeBytes: number; url: string | null }
+export type SkillPiece = { id: string; title: string; brief: string; role: string; madeOn: string; liveLink: string; files: SkillFile[] }
+export type SkillWork = {
+  id: string
+  skillKey: string
+  skillLabel: string
+  status: string
+  pieces: SkillPiece[]
+  walkthrough: SkillFile[]
+  declaration: { ownWork: boolean; aiUsed: boolean; aiNote: string | null }
+}
+export type AuthenticityRow = { id: string; skillKey: string; skillLabel: string; submittedAt: string; repeatOfRejected: boolean; person: { name: string } }
+export type AuthenticityDetail = {
+  submission: SkillWork & {
+    submittedAt: string
+    repeatOfRejected: boolean
+    person: { id: string; name: string; email: string; region: string | null; education: { kind: string; school: string | null; detail: string | null } | null }
+  }
+  earlier: { id: string; status: string; submittedAt: string; resultReasons: { kind?: string; note?: string } | null }[]
+  nextPenaltyMonths: number
+  checklist: { key: string; label: string }[]
+}
+export type ReviewRow = { id: string; skillKey: string; skillLabel: string; waitingSince: string; reviewsSoFar: number; pieces: number; thirdOpinion: boolean }
+export type Rubric = { draft: boolean; scale: { score: number; label: string }[]; lines: { key: string; label: string; looksLike: string }[] }
+export type ReviewDetail = {
+  submission: SkillWork
+  rubric: Rubric
+  myReview: { scores: Record<string, number>; verdict: 'pass' | 'notYet'; comment: string } | null
+  thirdOpinion: boolean
+}
+
 export type OnCallShift ={ id: string; startsAt: string; endsAt: string; admin: { id: string; name: string | null; email: string } }
 export type OpsAlert = { id: string; title: string; slackSent: boolean; emailedTo: string[] }
 
@@ -453,6 +484,23 @@ export const api = {
 
   identityNotYet: (id: string, body: { reasonCode: string; note?: string }) =>
     request<{ ok: true }>(`/admin/identity-checks/${id}/not-yet`, { method: 'POST', body: JSON.stringify(body) }),
+
+  authenticityList: () => request<{ submissions: AuthenticityRow[] }>('/admin/authenticity'),
+
+  authenticityDetail: (id: string) => request<AuthenticityDetail>(`/admin/authenticity/${id}`),
+
+  authenticityPass: (id: string, body: { checklist: Record<string, boolean>; note?: string }) =>
+    request<{ ok: true }>(`/admin/authenticity/${id}/pass`, { method: 'POST', body: JSON.stringify(body) }),
+
+  authenticityAct: (id: string, action: 'stop' | 'penalize' | 'ban', note: string) =>
+    request<{ ok: true; months?: number }>(`/admin/authenticity/${id}/${action}`, { method: 'POST', body: JSON.stringify({ note }) }),
+
+  skillReviews: () => request<{ submissions: ReviewRow[] }>('/admin/skill-reviews'),
+
+  skillReview: (id: string) => request<ReviewDetail>(`/admin/skill-reviews/${id}`),
+
+  submitSkillReview: (id: string, body: { scores: Record<string, number>; verdict: 'pass' | 'notYet'; comment: string }) =>
+    request<{ ok: true; state: 'waiting' | 'needThird' | 'decided'; outcome: 'verified' | 'notYet' | null }>(`/admin/skill-reviews/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
 
   skills: () => request<{ categories: SkillCategory[]; skills: Skill[] }>('/skills'),
 

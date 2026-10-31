@@ -16,6 +16,8 @@ const LINKS: NavItem[] = [
   { to: '/entries', label: 'Entries' },
   { to: '/proof-review', label: 'Proof review', badge: 'proof' },
   { to: '/identity-checks', label: 'Identity', capability: 'checker' },
+  { to: '/authenticity', label: 'Authenticity', capability: 'checker' },
+  { to: '/skill-reviews', label: 'Skill reviews', capability: 'reviewer' },
   { to: '/decisions', label: 'Decisions' },
   { to: '/ledger', label: 'Ledger' },
   { to: '/audit', label: 'Audit log', capability: 'shareholder' },
