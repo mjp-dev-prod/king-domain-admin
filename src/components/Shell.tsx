@@ -13,6 +13,8 @@ import {
   ScrollText,
   Settings as SettingsIcon,
   ShieldCheck,
+  FileText,
+  UserSearch,
   Smartphone,
   Users,
   Vote,
@@ -46,6 +48,8 @@ const GROUPS: NavGroup[] = [
       { to: '/authenticity', label: 'Authenticity', icon: ScanSearch, capability: 'checker' },
       { to: '/skill-reviews', label: 'Skill reviews', icon: ClipboardCheck, capability: 'reviewer' },
       { to: '/proof-review', label: 'Proof review', icon: FileCheck2, badge: 'proof' },
+      { to: '/job-posts', label: 'Job posts', icon: FileText, capability: 'safety' },
+      { to: '/shortlists', label: 'Shortlists', icon: UserSearch, capability: 'support' },
     ],
   },
   {

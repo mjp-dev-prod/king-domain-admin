@@ -100,6 +100,51 @@ export type ReviewDetail = {
   thirdOpinion: boolean
 }
 
+export type RiskFlag = { code: string; label: string; match: string }
+export type PostReason = { code: string; label: string }
+export type JobPostRow = { id: string; title: string; skillLabel: string; jobType: string; currency: string; budget: string; flags: RiskFlag[]; createdAt: string; client: { id: string; fullName: string; email: string } }
+export type ClientRecord = { memberSince: string | null; identityVerified: boolean; clientKind: string | null; jobsPosted: number; jobsHired: number; jobsCompleted: number; paidOut: { currency: string; amount: number }[] }
+export type JobPostDetail = {
+  post: {
+    id: string
+    status: string
+    title: string
+    description: string
+    skillLabel: string
+    jobType: string
+    currency: string
+    budget: string
+    deliveryDays: number | null
+    visibility: string
+    brief: Record<string, unknown> | null
+    screeningQuestions: string[]
+    flags: RiskFlag[]
+    createdAt: string
+    client: { id: string; fullName: string; email: string }
+  }
+  clientRecord: ClientRecord
+  reasons: PostReason[]
+}
+
+export type TalentFact = {
+  id: string
+  fullName: string
+  headline: string | null
+  verifiedSkills: { skillKey: string; label: string; verifiedAt: string | null }[]
+  region: { country: string; state: string | null; city: string | null } | null
+  education: { kind: string; school: string | null; detail: string | null } | null
+  completedJobs: number
+  newOnKingDomain: boolean
+  lastActive: string
+}
+export type ShortlistRow = { id: string; status: string; skillLabel: string; client: string; clockStartedAt: string; sentAt: string | null; items: number; yes: number }
+export type ShortlistDetail = {
+  request: { id: string; status: string; skillKey: string; skillLabel: string; jobType: string; currency: string; budget: string; brief: Record<string, unknown>; note: string | null; clockStartedAt: string; sentAt: string | null; client: { id: string; fullName: string } }
+  items: { id: string; reason: string; askedAt: string | null; available: boolean | null; talent: TalentFact }[]
+  candidates: TalentFact[]
+  limits: { min: number; max: number }
+}
+
 export type OnCallShift ={ id: string; startsAt: string; endsAt: string; admin: { id: string; name: string | null; email: string } }
 export type OpsAlert = { id: string; title: string; slackSent: boolean; emailedTo: string[] }
 
@@ -484,6 +529,26 @@ export const api = {
 
   identityNotYet: (id: string, body: { reasonCode: string; note?: string }) =>
     request<{ ok: true }>(`/admin/identity-checks/${id}/not-yet`, { method: 'POST', body: JSON.stringify(body) }),
+
+  jobPosts: () => request<{ posts: JobPostRow[]; reasons: PostReason[] }>('/admin/job-posts'),
+
+  jobPost: (id: string) => request<JobPostDetail>(`/admin/job-posts/${id}`),
+
+  approveJobPost: (id: string) => request<{ ok: true }>(`/admin/job-posts/${id}/approve`, { method: 'POST' }),
+
+  rejectJobPost: (id: string, body: { reasonCode: string; note?: string }) =>
+    request<{ ok: true }>(`/admin/job-posts/${id}/reject`, { method: 'POST', body: JSON.stringify(body) }),
+
+  shortlists: (status: 'waiting' | 'sent') => request<{ requests: ShortlistRow[] }>(`/admin/shortlists?status=${status}`),
+
+  shortlist: (id: string) => request<ShortlistDetail>(`/admin/shortlists/${id}`),
+
+  shortlistAsk: (id: string, body: { talentId: string; reason: string }) =>
+    request<{ ok: true }>(`/admin/shortlists/${id}/items`, { method: 'POST', body: JSON.stringify(body) }),
+
+  shortlistRemove: (id: string, itemId: string) => request<{ ok: true }>(`/admin/shortlists/${id}/items/${itemId}`, { method: 'DELETE' }),
+
+  shortlistSend: (id: string) => request<{ ok: true }>(`/admin/shortlists/${id}/send`, { method: 'POST' }),
 
   authenticityList: () => request<{ submissions: AuthenticityRow[] }>('/admin/authenticity'),
 
