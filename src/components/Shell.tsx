@@ -1,28 +1,70 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LogOut, Menu, Settings as SettingsIcon } from 'lucide-react'
+import {
+  BookOpen,
+  ClipboardCheck,
+  FileCheck2,
+  Inbox as InboxIcon,
+  LayoutDashboard,
+  List,
+  LogOut,
+  Menu,
+  ScanSearch,
+  ScrollText,
+  Settings as SettingsIcon,
+  ShieldCheck,
+  Smartphone,
+  Users,
+  Vote,
+} from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { api, PROOF_COUNTS_CHANGED, type AdminCapability } from '@/lib/api'
 import { can } from '@/lib/capabilities'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
-type NavItem = { to: string; label: string; end?: boolean; ownerOnly?: boolean; badge?: 'proof'; capability?: AdminCapability }
+type NavItem = {
+  to: string
+  label: string
+  icon: ComponentType<{ className?: string }>
+  end?: boolean
+  ownerOnly?: boolean
+  badge?: 'proof'
+  capability?: AdminCapability
+}
 
-const LINKS: NavItem[] = [
-  { to: '/inbox', label: 'Inbox' },
-  { to: '/', label: 'Overview', end: true },
-  { to: '/entries', label: 'Entries' },
-  { to: '/proof-review', label: 'Proof review', badge: 'proof' },
-  { to: '/identity-checks', label: 'Identity', capability: 'checker' },
-  { to: '/authenticity', label: 'Authenticity', capability: 'checker' },
-  { to: '/skill-reviews', label: 'Skill reviews', capability: 'reviewer' },
-  { to: '/decisions', label: 'Decisions' },
-  { to: '/ledger', label: 'Ledger' },
-  { to: '/audit', label: 'Audit log', capability: 'shareholder' },
-  { to: '/app-releases', label: 'App Releases' },
-  { to: '/team', label: 'Team', ownerOnly: true },
+type NavGroup = { title: string; items: NavItem[] }
+
+/** Queues first (what needs a person today), then the product, then the admin's own tools. */
+const GROUPS: NavGroup[] = [
+  {
+    title: 'Work queues',
+    items: [
+      { to: '/inbox', label: 'Inbox', icon: InboxIcon },
+      { to: '/identity-checks', label: 'Identity', icon: ShieldCheck, capability: 'checker' },
+      { to: '/authenticity', label: 'Authenticity', icon: ScanSearch, capability: 'checker' },
+      { to: '/skill-reviews', label: 'Skill reviews', icon: ClipboardCheck, capability: 'reviewer' },
+      { to: '/proof-review', label: 'Proof review', icon: FileCheck2, badge: 'proof' },
+    ],
+  },
+  {
+    title: 'Product',
+    items: [
+      { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
+      { to: '/entries', label: 'Entries', icon: List },
+      { to: '/decisions', label: 'Decisions', icon: Vote },
+      { to: '/ledger', label: 'Ledger', icon: BookOpen },
+      { to: '/app-releases', label: 'App Releases', icon: Smartphone },
+    ],
+  },
+  {
+    title: 'Admin',
+    items: [
+      { to: '/audit', label: 'Audit log', icon: ScrollText, capability: 'shareholder' },
+      { to: '/team', label: 'Team', icon: Users, ownerOnly: true },
+    ],
+  },
 ]
 
 /** Proof items waiting on a reviewer — refreshed on navigation and after each decision. */
@@ -51,131 +93,116 @@ function usePendingProofCount() {
 function CountBadge({ count }: { count: number | null }) {
   if (!count) return null
   return (
-    <span className="tabular ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-open/15 px-1.5 text-[0.7rem] font-semibold text-open">
+    <span className="tabular ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-open/15 px-1.5 text-[0.7rem] font-semibold text-open">
       {count}
       <span className="sr-only"> waiting</span>
     </span>
   )
 }
 
-export function Shell() {
+/** Everything the sidebar holds. The same content sits in the fixed column on desktop and in the slide-out on phones. */
+function SidebarBody({ pending, onNavigate, touch }: { pending: number | null; onNavigate?: () => void; touch?: boolean }) {
   const { user, signOut } = useAuth()
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((l) => (!l.ownerOnly || user?.role === 'owner') && (!l.capability || can(user, l.capability))),
+  })).filter((g) => g.items.length > 0)
+
+  const row = (isActive: boolean) =>
+    cn(
+      'flex items-center gap-3 rounded-md px-3 text-sm transition-colors',
+      touch ? 'min-h-12 text-[0.95rem]' : 'min-h-10',
+      isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+    )
+
+  return (
+    <>
+      <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto p-3">
+        {groups.map((group) => (
+          <div key={group.title}>
+            <p className="label px-3 pb-1.5">{group.title}</p>
+            <div className="space-y-0.5">
+              {group.items.map((link) => (
+                <NavLink key={link.to} to={link.to} end={link.end} onClick={onNavigate} className={({ isActive }) => row(isActive)}>
+                  <link.icon className="size-4 shrink-0" />
+                  <span className="truncate">{link.label}</span>
+                  {link.badge === 'proof' && <CountBadge count={pending} />}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      <div className="space-y-0.5 border-t border-border p-3">
+        <p className="truncate px-3 pb-1 text-xs text-muted-foreground">{user?.name || user?.email}</p>
+        <NavLink to="/settings" onClick={onNavigate} className={({ isActive }) => row(isActive)}>
+          <SettingsIcon className="size-4 shrink-0" />
+          Settings
+        </NavLink>
+        <button onClick={signOut} className={cn(row(false), 'w-full')}>
+          <LogOut className="size-4 shrink-0" />
+          Sign out
+        </button>
+      </div>
+    </>
+  )
+}
+
+function Brand({ className }: { className?: string }) {
+  return (
+    <NavLink to="/" className={cn('flex min-h-11 shrink-0 items-center gap-2', className)}>
+      <span className="font-display text-lg font-bold text-gold">KD</span>
+      <span className="label">Admin</span>
+    </NavLink>
+  )
+}
+
+export function Shell() {
   const pending = usePendingProofCount()
   const [menuOpen, setMenuOpen] = useState(false)
-  const links = LINKS.filter((l) => (!l.ownerOnly || user?.role === 'owner') && (!l.capability || can(user, l.capability)))
+  const { user } = useAuth()
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:gap-6">
-          <NavLink to="/" className="-mx-2 flex min-h-11 shrink-0 items-center gap-2 px-2">
-            <span className="font-display text-lg font-bold text-gold">KD</span>
-            <span className="label">Admin</span>
-          </NavLink>
+      {/* Desktop: a fixed column down the left. */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-background lg:flex">
+        <div className="flex h-14 items-center border-b border-border px-5">
+          <Brand />
+        </div>
+        <SidebarBody pending={pending} />
+      </aside>
 
-          {/* Wide screens: the full row. */}
-          <nav className="hidden flex-1 items-center gap-1 lg:flex">
-            {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) =>
-                  cn(
-                    'inline-flex items-center rounded-md px-3 py-1.5 text-sm whitespace-nowrap transition-colors',
-                    isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground',
-                  )
-                }
-              >
-                {link.label}
-                {link.badge === 'proof' && <CountBadge count={pending} />}
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0">
-            <span className="hidden max-w-40 truncate text-xs text-muted-foreground xl:inline">
-              {user?.name || user?.email}
-            </span>
-            <NavLink
-              to="/settings"
-              aria-label="Settings"
-              className={({ isActive }) =>
-                cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'hidden lg:inline-flex', isActive && 'bg-secondary')
-              }
-            >
-              <SettingsIcon className="size-4" />
-            </NavLink>
-            <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out" className="hidden lg:inline-flex">
-              <LogOut className="size-4" />
-            </Button>
-
-            {/* Phones and tablets: everything moves into a side panel. */}
+      {/* Phones and tablets: a slim bar with the same sidebar in a slide-out. */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur lg:hidden">
+        <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+          <Brand className="-mx-2 px-2" />
+          <div className="ml-auto">
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative lg:hidden" aria-label="Open menu">
+                <Button variant="ghost" size="icon" className="relative" aria-label="Open menu">
                   <Menu className="size-5" />
                   {!!pending && <span className="absolute top-2 right-2 size-2 rounded-full bg-open" aria-hidden />}
                 </Button>
               </SheetTrigger>
               <SheetContent>
-                <div className="border-b border-border px-5 pt-5 pb-4 pr-14">
+                <div className="border-b border-border px-5 pt-5 pr-14 pb-4">
                   <SheetTitle>
                     <span className="text-gold">KD</span> Admin
                   </SheetTitle>
                   <SheetDescription className="mt-1 truncate">{user?.name || user?.email}</SheetDescription>
                 </div>
-
-                <nav className="flex-1 overflow-y-auto p-2">
-                  {links.map((link) => (
-                    <NavLink
-                      key={link.to}
-                      to={link.to}
-                      end={link.end}
-                      onClick={() => setMenuOpen(false)}
-                      className={({ isActive }) =>
-                        cn(
-                          'flex min-h-12 items-center rounded-md px-3 text-[0.95rem] transition-colors',
-                          isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground',
-                        )
-                      }
-                    >
-                      {link.label}
-                      {link.badge === 'proof' && <CountBadge count={pending} />}
-                    </NavLink>
-                  ))}
-                </nav>
-
-                <div className="space-y-1 border-t border-border p-2">
-                  <NavLink
-                    to="/settings"
-                    onClick={() => setMenuOpen(false)}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex min-h-12 items-center gap-3 rounded-md px-3 text-[0.95rem] transition-colors',
-                        isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground',
-                      )
-                    }
-                  >
-                    <SettingsIcon className="size-4" />
-                    Settings
-                  </NavLink>
-                  <button
-                    onClick={signOut}
-                    className="flex min-h-12 w-full items-center gap-3 rounded-md px-3 text-[0.95rem] text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <LogOut className="size-4" />
-                    Sign out
-                  </button>
-                </div>
+                <SidebarBody pending={pending} touch onNavigate={() => setMenuOpen(false)} />
               </SheetContent>
             </Sheet>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        <Outlet />
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:ml-64 lg:max-w-none lg:px-8 xl:px-10">
+        <div className="mx-auto max-w-6xl">
+          <Outlet />
+        </div>
       </main>
     </div>
   )
