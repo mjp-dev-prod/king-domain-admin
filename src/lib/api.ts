@@ -152,6 +152,15 @@ export type SafetyReportDetail = {
   liveContract: boolean
 }
 
+export type StartProofRow = { contractId: string; jobTitle: string; skillKey: string | null; status: string; round: number; objection: { reasonCode: string; label: string; note: string; at: string } | null; budget: number; currency: string }
+export type StartProofField = { key: string; label: string; kind: string; min: number; max: number; items: { id: string; text: string | null; name: string | null; contentType: string | null; sizeBytes: number | null; url: string | null }[] }
+export type StartProofDetail = {
+  startProof: { contractId: string; status: string; round: number; submittedAt: string | null; objection: StartProofRow['objection']; upfrontAmount: number; currency: string; jobTitle: string; jobId: string }
+  fields: StartProofField[]
+  checklist: { meetsFormat: boolean; missing: { key: string; label: string; problem: string }[] }
+  parties: { client: { id: string; fullName: string; email: string }; talent: { id: string; fullName: string; email: string } | null }
+}
+
 export type OnCallShift ={ id: string; startsAt: string; endsAt: string; admin: { id: string; name: string | null; email: string } }
 export type OpsAlert = { id: string; title: string; slackSent: boolean; emailedTo: string[] }
 
@@ -543,6 +552,13 @@ export const api = {
 
   handleSafetyReport: (id: string, body: { action: 'dismiss' | 'actioned'; note?: string }) =>
     request<{ ok: true }>(`/admin/safety-reports/${id}/handle`, { method: 'POST', body: JSON.stringify(body) }),
+
+  startProofs: (status: 'open' | 'handled') => request<{ startProofs: StartProofRow[] }>(`/admin/start-proofs?status=${status}`),
+
+  startProof: (contractId: string) => request<StartProofDetail>(`/admin/start-proofs/${contractId}`),
+
+  resolveStartProof: (contractId: string, body: { decision: 'uphold' | 'dismiss'; note: string }) =>
+    request<{ ok: true; status: string }>(`/admin/start-proofs/${contractId}/resolve`, { method: 'POST', body: JSON.stringify(body) }),
 
   jobPosts: () => request<{ posts: JobPostRow[]; reasons: PostReason[] }>('/admin/job-posts'),
 

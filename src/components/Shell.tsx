@@ -52,6 +52,7 @@ const GROUPS: NavGroup[] = [
       { to: '/job-posts', label: 'Job posts', icon: FileText, capability: 'safety' },
       { to: '/shortlists', label: 'Shortlists', icon: UserSearch, capability: 'support' },
       { to: '/safety-reports', label: 'Safety reports', icon: Flag, capability: 'safety' },
+      { to: '/start-proofs', label: 'Start proofs', icon: FileCheck2, capability: 'disputes' },
     ],
   },
   {
