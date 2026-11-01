@@ -26,6 +26,7 @@ import { SafetyReports } from '@/pages/SafetyReports'
 import { StartProofs } from '@/pages/StartProofs'
 import { Disputes } from '@/pages/Disputes'
 import { Chargebacks } from '@/pages/Chargebacks'
+import { ReviewReports } from '@/pages/ReviewReports'
 import { Audit } from '@/pages/Audit'
 import { Toaster } from '@/components/ui/sonner'
 import { Sentry } from '@/lib/sentry'
@@ -93,6 +94,8 @@ export default function App() {
               <Route path="safety-reports/:id" element={<SafetyReports />} />
               <Route path="disputes" element={<Disputes />} />
               <Route path="disputes/:id" element={<Disputes />} />
+              <Route path="review-reports" element={<ReviewReports />} />
+              <Route path="review-reports/:id" element={<ReviewReports />} />
               <Route path="chargebacks" element={<Chargebacks />} />
               <Route path="chargebacks/:id" element={<Chargebacks />} />
               <Route path="start-proofs" element={<StartProofs />} />

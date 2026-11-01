@@ -188,6 +188,15 @@ export type ChargebackCase = {
   talentPaid: boolean
 }
 
+export type ReviewReportRow = { id: string; status: string; reason: string; createdAt: string; direction: string; preview: string }
+export type ReviewReportDetail = {
+  report: { id: string; status: string; reason: string; reasonCode: string; note: string; handledNote: string | null; createdAt: string; reportedBy: string }
+  review: { id: string; direction: string; answers: Record<string, string | boolean>; comment: string; reply: string | null; removedAt: string | null; removedReason: string | null; by: string; about: string }
+  job: { title: string; skill: string; description: string } | null
+  conversation: { fromAuthor: boolean; kind: string; body: string; at: string }[]
+  reasons: { code: string; label: string }[]
+}
+
 export type OnCallShift ={ id: string; startsAt: string; endsAt: string; admin: { id: string; name: string | null; email: string } }
 export type OpsAlert = { id: string; title: string; slackSent: boolean; emailedTo: string[] }
 
@@ -598,6 +607,11 @@ export const api = {
   chargeback: (id: string) => request<ChargebackCase>(`/admin/chargebacks/${id}`),
   contestChargeback: (id: string, note: string) => request<{ ok: true }>(`/admin/chargebacks/${id}/respond`, { method: 'POST', body: JSON.stringify({ note }) }),
   acceptChargeback: (id: string, note: string) => request<{ ok: true }>(`/admin/chargebacks/${id}/accept`, { method: 'POST', body: JSON.stringify({ note }) }),
+
+  reviewReports: (status: 'open' | 'handled') => request<{ reports: ReviewReportRow[] }>(`/admin/review-reports?status=${status}`),
+  reviewReport: (id: string) => request<ReviewReportDetail>(`/admin/review-reports/${id}`),
+  handleReviewReport: (id: string, body: { decision: 'remove' | 'keep'; reasonCode?: string; note: string }) =>
+    request<{ ok: true }>(`/admin/review-reports/${id}/handle`, { method: 'POST', body: JSON.stringify(body) }),
 
   jobPosts: () => request<{ posts: JobPostRow[]; reasons: PostReason[] }>('/admin/job-posts'),
 
