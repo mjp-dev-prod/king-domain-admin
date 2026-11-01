@@ -24,6 +24,8 @@ import { JobPosts } from '@/pages/JobPosts'
 import { Shortlists } from '@/pages/Shortlists'
 import { SafetyReports } from '@/pages/SafetyReports'
 import { StartProofs } from '@/pages/StartProofs'
+import { Disputes } from '@/pages/Disputes'
+import { Chargebacks } from '@/pages/Chargebacks'
 import { Audit } from '@/pages/Audit'
 import { Toaster } from '@/components/ui/sonner'
 import { Sentry } from '@/lib/sentry'
@@ -89,6 +91,10 @@ export default function App() {
               <Route path="shortlists/:id" element={<Shortlists />} />
               <Route path="safety-reports" element={<SafetyReports />} />
               <Route path="safety-reports/:id" element={<SafetyReports />} />
+              <Route path="disputes" element={<Disputes />} />
+              <Route path="disputes/:id" element={<Disputes />} />
+              <Route path="chargebacks" element={<Chargebacks />} />
+              <Route path="chargebacks/:id" element={<Chargebacks />} />
               <Route path="start-proofs" element={<StartProofs />} />
               <Route path="start-proofs/:id" element={<StartProofs />} />
               <Route path="audit" element={<Audit />} />

@@ -161,6 +161,33 @@ export type StartProofDetail = {
   parties: { client: { id: string; fullName: string; email: string }; talent: { id: string; fullName: string; email: string } | null }
 }
 
+export type DisputeRow = { id: string; jobTitle: string; budget: number; currency: string; problem: string; filedByRole: string; status: string; escalatedAt: string | null; rulingDueAt: string | null; awaitingApproval: boolean; outcome: { outcome: string; talentPercent: number } | null }
+export type DisputePerson = { id: string; name: string; legalName: string | null; email: string; address: string | null; identityVerified: boolean; history: { filed: number; lost: number; lostAsFiler: number; flagged: boolean } | null } | null
+export type DisputeCase = {
+  dispute: { id: string; status: string; problem: string; problemLabel: string; rule: string | null; note: string; filedByRole: string; openedAt: string; escalatedAt: string | null; escalationReason: string | null; rulingDueAt: string | null; resolvedAt: string | null; resolution: { by: string; kind?: string; talentPercent?: number } | null }
+  ruling: { outcome: string; talentPercent: number; reasons: string; talentAmount: number; clientRefund: number; status: string; decidedById: string; approvedById: string | null } | null
+  money: { held: number; currency: string; upfrontPaid: number; price: number; fee: number; secondPersonAbove: number; needsSecondPerson: boolean; settlement: Record<string, unknown> | null }
+  job: { id: string; title: string; description: string; skill: string | null; brief: Record<string, unknown> | null; deliveryDays: number | null; type: string }
+  contract: { id: string; status: string; fundedAt: string | null; deliverByAt: string | null; changeRounds: number; extensionsUsed: number }
+  parties: { client: DisputePerson; talent: DisputePerson }
+  proposals: { id: string; by: string; kind: string; description: string; note: string; status: string; createdAt: string; answerDueAt: string }[]
+  startProof: { status: string | null; objection: { label: string; note: string } | null; items: { field: string; text: string | null; name: string | null; contentType: string | null; url: string | null }[] }
+  deliveries: { version: number; note: string | null; url: string | null; fileUrl: string | null; at: string }[]
+  drafts: { note: string; at: string; files: { name: string; contentType: string; url: string | null }[] }[]
+  changeRequests: { round: number; reason: string; at: string; resubmittedAt: string | null }[]
+  extensions: { days: number; reason: string; status: string; at: string }[]
+  conversation: { from: string; kind: string; body: string; at: string; attachment: string | null }[]
+  timeline: { type: string; at: string }[]
+}
+export type ChargebackRow = { id: string; status: string; amount: number; dueAt: string | null; receivedAt: string; hasContract: boolean; resolution: string | null }
+export type ChargebackCase = {
+  chargeback: { id: string; status: string; amount: number; dueAt: string | null; receivedAt: string; reference: string | null; bin: string | null; last4: string | null; resolution: string | null; responseNote: string | null; clientRemovedAt: string | null }
+  receipt: { lines: string[]; ready: boolean; missing: string[] }
+  job: { id: string; title: string; status: string; paidOut: boolean } | null
+  client: { name: string; email: string; identityVerified: boolean } | null
+  talentPaid: boolean
+}
+
 export type OnCallShift ={ id: string; startsAt: string; endsAt: string; admin: { id: string; name: string | null; email: string } }
 export type OpsAlert = { id: string; title: string; slackSent: boolean; emailedTo: string[] }
 
@@ -559,6 +586,18 @@ export const api = {
 
   resolveStartProof: (contractId: string, body: { decision: 'uphold' | 'dismiss'; note: string }) =>
     request<{ ok: true; status: string }>(`/admin/start-proofs/${contractId}/resolve`, { method: 'POST', body: JSON.stringify(body) }),
+
+  disputes: (status: 'open' | 'handled') => request<{ disputes: DisputeRow[] }>(`/admin/disputes?status=${status}`),
+  dispute: (id: string) => request<DisputeCase>(`/admin/disputes/${id}`),
+  ruleDispute: (id: string, body: { outcome: 'release' | 'refund' | 'split'; talentPercent?: number; reasons: string }) =>
+    request<{ ok: true; awaitingApproval: boolean }>(`/admin/disputes/${id}/rule`, { method: 'POST', body: JSON.stringify(body) }),
+  approveRuling: (id: string) => request<{ ok: true }>(`/admin/disputes/${id}/approve`, { method: 'POST' }),
+  sendBackRuling: (id: string, note: string) => request<{ ok: true }>(`/admin/disputes/${id}/send-back`, { method: 'POST', body: JSON.stringify({ note }) }),
+  retryRuling: (id: string) => request<{ ok: true }>(`/admin/disputes/${id}/retry`, { method: 'POST' }),
+  chargebacks: (status: 'open' | 'handled') => request<{ chargebacks: ChargebackRow[] }>(`/admin/chargebacks?status=${status}`),
+  chargeback: (id: string) => request<ChargebackCase>(`/admin/chargebacks/${id}`),
+  contestChargeback: (id: string, note: string) => request<{ ok: true }>(`/admin/chargebacks/${id}/respond`, { method: 'POST', body: JSON.stringify({ note }) }),
+  acceptChargeback: (id: string, note: string) => request<{ ok: true }>(`/admin/chargebacks/${id}/accept`, { method: 'POST', body: JSON.stringify({ note }) }),
 
   jobPosts: () => request<{ posts: JobPostRow[]; reasons: PostReason[] }>('/admin/job-posts'),
 
