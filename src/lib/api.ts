@@ -70,7 +70,7 @@ export type IdentityCheck = {
 }
 
 export type SkillFile = { id: string; role: 'output' | 'working' | 'draft' | 'walkthrough'; pieceId: string | null; name: string; contentType: string; sizeBytes: number; url: string | null }
-export type SkillPiece = { id: string; title: string; brief: string; role: string; madeOn: string; liveLink: string; files: SkillFile[] }
+export type SkillPiece = { id: string; title: string; brief: string; role: string; madeOn: string; liveLink: string; processLink?: string; files: SkillFile[] }
 export type SkillWork = {
   id: string
   skillKey: string

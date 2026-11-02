@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge'
 
 const ROLE_LABEL: Record<SkillFile['role'], string> = {
   output: 'Finished work',
-  working: 'Working file',
-  draft: 'Draft',
+  working: 'Shows how it was made',
+  draft: 'Earlier version',
   walkthrough: 'Walkthrough',
 }
 
@@ -55,6 +55,14 @@ export function SkillWorkViewer({ work }: { work: SkillWork }) {
             <a href={p.liveLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm underline">
               <ExternalLink className="size-3" /> {p.liveLink}
             </a>
+          )}
+          {p.processLink && (
+            <p className="text-sm">
+              <span className="text-muted-foreground">How it was made, as a link: </span>
+              <a href={p.processLink} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 underline">
+                <ExternalLink className="size-3" /> {p.processLink}
+              </a>
+            </p>
           )}
           <div className="space-y-3">
             {p.files.map((f) => (
