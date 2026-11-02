@@ -153,10 +153,10 @@ export type SafetyReportDetail = {
 }
 
 export type StartProofRow = { contractId: string; jobTitle: string; skillKey: string | null; status: string; round: number; objection: { reasonCode: string; label: string; note: string; at: string } | null; budget: number; currency: string }
-export type StartProofField = { key: string; label: string; kind: string; min: number; max: number; items: { id: string; text: string | null; name: string | null; contentType: string | null; sizeBytes: number | null; url: string | null }[] }
+export type StartProofCaseField = { key: string; label: string; kind: string; min: number; max: number; items: { id: string; text: string | null; name: string | null; contentType: string | null; sizeBytes: number | null; url: string | null }[] }
 export type StartProofDetail = {
   startProof: { contractId: string; status: string; round: number; submittedAt: string | null; objection: StartProofRow['objection']; upfrontAmount: number; currency: string; jobTitle: string; jobId: string }
-  fields: StartProofField[]
+  fields: StartProofCaseField[]
   checklist: { meetsFormat: boolean; missing: { key: string; label: string; problem: string }[] }
   parties: { client: { id: string; fullName: string; email: string }; talent: { id: string; fullName: string; email: string } | null }
 }
