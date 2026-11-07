@@ -189,9 +189,13 @@ function Detail({ id }: { id: string }) {
 
       <Card className="space-y-2 p-4 text-sm">
         <p className="font-medium">The brief</p>
-        {Object.entries(post.brief ?? {}).map(([k, v]) => (
-          <p key={k}><span className="text-muted-foreground">{k}: </span>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</p>
-        ))}
+        {post.briefLines
+          ? post.briefLines.map((l) => (
+              <p key={l.key}><span className="text-muted-foreground">{l.label}: </span>{l.value}</p>
+            ))
+          : Object.entries(post.brief ?? {}).map(([k, v]) => (
+              <p key={k}><span className="text-muted-foreground">{k}: </span>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</p>
+            ))}
         {post.screeningQuestions.length > 0 && (
           <>
             <p className="pt-2 font-medium">Screening questions</p>

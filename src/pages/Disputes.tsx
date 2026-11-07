@@ -203,7 +203,13 @@ function Case({ id }: { id: string }) {
             <Card className="space-y-2 p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">The brief (what the work is judged against)</p>
               <p className="whitespace-pre-wrap text-sm">{data.job.description}</p>
-              {data.job.brief && (
+              {data.job.briefLines && data.job.briefLines.length > 0 ? (
+                <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+                  {data.job.briefLines.map((l) => (
+                    <div key={l.key}><dt className="text-xs text-muted-foreground">{l.label}</dt><dd>{l.value}</dd></div>
+                  ))}
+                </dl>
+              ) : data.job.brief && (
                 <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
                   {Object.entries(data.job.brief).map(([k, v]) => (
                     <div key={k}><dt className="text-xs text-muted-foreground">{k}</dt><dd>{typeof v === 'string' || typeof v === 'number' ? String(v) : JSON.stringify(v)}</dd></div>

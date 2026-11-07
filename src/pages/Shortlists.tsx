@@ -193,9 +193,13 @@ function Detail({ id }: { id: string }) {
         <p className="text-sm text-muted-foreground">{waiting(r.clockStartedAt)}</p>
         {r.note && <p className="text-sm">{r.note}</p>}
         <div className="space-y-0.5 text-sm">
-          {Object.entries(r.brief).map(([k, v]) => (
-            <p key={k}><span className="text-muted-foreground">{k}: </span>{String(v)}</p>
-          ))}
+          {r.briefLines
+            ? r.briefLines.map((l) => (
+                <p key={l.key}><span className="text-muted-foreground">{l.label}: </span>{l.value}</p>
+              ))
+            : Object.entries(r.brief).map(([k, v]) => (
+                <p key={k}><span className="text-muted-foreground">{k}: </span>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</p>
+              ))}
         </div>
       </Card>
 

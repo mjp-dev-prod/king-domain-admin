@@ -70,6 +70,9 @@ export type IdentityCheck = {
 }
 
 export type SkillFile = { id: string; role: 'output' | 'working' | 'draft' | 'walkthrough'; pieceId: string | null; name: string; contentType: string; sizeBytes: number; url: string | null }
+/** A brief as the server words it: each answer under the question the form asked, old briefs included. */
+export type BriefLine = { key: string; label: string; value: string }
+
 export type SkillPiece = { id: string; title: string; brief: string; role: string; madeOn: string; liveLink: string; processLink?: string; files: SkillFile[] }
 export type SkillWork = {
   id: string
@@ -117,6 +120,7 @@ export type JobPostDetail = {
     deliveryDays: number | null
     visibility: string
     brief: Record<string, unknown> | null
+    briefLines?: BriefLine[]
     screeningQuestions: string[]
     flags: RiskFlag[]
     createdAt: string
@@ -139,7 +143,7 @@ export type TalentFact = {
 }
 export type ShortlistRow = { id: string; status: string; skillLabel: string; client: string; clockStartedAt: string; sentAt: string | null; items: number; yes: number }
 export type ShortlistDetail = {
-  request: { id: string; status: string; skillKey: string; skillLabel: string; jobType: string; currency: string; budget: string; brief: Record<string, unknown>; note: string | null; clockStartedAt: string; sentAt: string | null; client: { id: string; fullName: string } }
+  request: { id: string; status: string; skillKey: string; skillLabel: string; jobType: string; currency: string; budget: string; brief: Record<string, unknown>; briefLines?: BriefLine[]; note: string | null; clockStartedAt: string; sentAt: string | null; client: { id: string; fullName: string } }
   items: { id: string; reason: string; askedAt: string | null; available: boolean | null; talent: TalentFact }[]
   candidates: TalentFact[]
   limits: { min: number; max: number }
@@ -167,7 +171,7 @@ export type DisputeCase = {
   dispute: { id: string; status: string; problem: string; problemLabel: string; rule: string | null; note: string; filedByRole: string; openedAt: string; escalatedAt: string | null; escalationReason: string | null; rulingDueAt: string | null; resolvedAt: string | null; resolution: { by: string; kind?: string; talentPercent?: number } | null }
   ruling: { outcome: string; talentPercent: number; reasons: string; talentAmount: number; clientRefund: number; status: string; decidedById: string; approvedById: string | null } | null
   money: { held: number; currency: string; upfrontPaid: number; price: number; fee: number; secondPersonAbove: number; needsSecondPerson: boolean; settlement: Record<string, unknown> | null }
-  job: { id: string; title: string; description: string; skill: string | null; brief: Record<string, unknown> | null; deliveryDays: number | null; type: string }
+  job: { id: string; title: string; description: string; skill: string | null; brief: Record<string, unknown> | null; briefLines?: BriefLine[]; deliveryDays: number | null; type: string }
   contract: { id: string; status: string; fundedAt: string | null; deliverByAt: string | null; changeRounds: number; extensionsUsed: number }
   parties: { client: DisputePerson; talent: DisputePerson }
   proposals: { id: string; by: string; kind: string; description: string; note: string; status: string; createdAt: string; answerDueAt: string }[]
