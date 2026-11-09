@@ -1,5 +1,5 @@
-import { useEffect, useState, type ComponentType } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useState, type ComponentType } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
 import {
   BookOpen,
   ClipboardCheck,
@@ -24,7 +24,7 @@ import {
   Vote,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
-import { api, PROOF_COUNTS_CHANGED, type AdminCapability } from '@/lib/api'
+import { type AdminCapability } from '@/lib/api'
 import { can } from '@/lib/capabilities'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -36,7 +36,6 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>
   end?: boolean
   ownerOnly?: boolean
-  badge?: 'proof'
   capability?: AdminCapability
 }
 
@@ -51,7 +50,6 @@ const GROUPS: NavGroup[] = [
       { to: '/identity-checks', label: 'Identity', icon: ShieldCheck, capability: 'checker' },
       { to: '/authenticity', label: 'Authenticity', icon: ScanSearch, capability: 'checker' },
       { to: '/skill-reviews', label: 'Skill reviews', icon: ClipboardCheck, capability: 'reviewer' },
-      { to: '/proof-review', label: 'Proof review', icon: FileCheck2, badge: 'proof' },
       { to: '/job-posts', label: 'Job posts', icon: FileText, capability: 'safety' },
       { to: '/shortlists', label: 'Shortlists', icon: UserSearch, capability: 'support' },
       { to: '/safety-reports', label: 'Safety reports', icon: Flag, capability: 'safety' },
@@ -80,41 +78,8 @@ const GROUPS: NavGroup[] = [
   },
 ]
 
-/** Proof items waiting on a reviewer — refreshed on navigation and after each decision. */
-function usePendingProofCount() {
-  const location = useLocation()
-  const [pending, setPending] = useState<number | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    const load = () =>
-      api
-        .proofCounts()
-        .then((c) => !cancelled && setPending(c.pending))
-        .catch(() => {})
-    load()
-    window.addEventListener(PROOF_COUNTS_CHANGED, load)
-    return () => {
-      cancelled = true
-      window.removeEventListener(PROOF_COUNTS_CHANGED, load)
-    }
-  }, [location.pathname])
-
-  return pending
-}
-
-function CountBadge({ count }: { count: number | null }) {
-  if (!count) return null
-  return (
-    <span className="tabular ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-open/15 px-1.5 text-[0.7rem] font-semibold text-open">
-      {count}
-      <span className="sr-only"> waiting</span>
-    </span>
-  )
-}
-
 /** Everything the sidebar holds. The same content sits in the fixed column on desktop and in the slide-out on phones. */
-function SidebarBody({ pending, onNavigate, touch }: { pending: number | null; onNavigate?: () => void; touch?: boolean }) {
+function SidebarBody({ onNavigate, touch }: { onNavigate?: () => void; touch?: boolean }) {
   const { user, signOut } = useAuth()
   const groups = GROUPS.map((g) => ({
     ...g,
@@ -139,7 +104,6 @@ function SidebarBody({ pending, onNavigate, touch }: { pending: number | null; o
                 <NavLink key={link.to} to={link.to} end={link.end} onClick={onNavigate} className={({ isActive }) => row(isActive)}>
                   <link.icon className="size-4 shrink-0" />
                   <span className="truncate">{link.label}</span>
-                  {link.badge === 'proof' && <CountBadge count={pending} />}
                 </NavLink>
               ))}
             </div>
@@ -172,7 +136,6 @@ function Brand({ className }: { className?: string }) {
 }
 
 export function Shell() {
-  const pending = usePendingProofCount()
   const [menuOpen, setMenuOpen] = useState(false)
   const { user } = useAuth()
 
@@ -183,7 +146,7 @@ export function Shell() {
         <div className="flex h-14 items-center border-b border-border px-5">
           <Brand />
         </div>
-        <SidebarBody pending={pending} />
+        <SidebarBody />
       </aside>
 
       {/* Phones and tablets: a slim bar with the same sidebar in a slide-out. */}
@@ -195,7 +158,6 @@ export function Shell() {
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative" aria-label="Open menu">
                   <Menu className="size-5" />
-                  {!!pending && <span className="absolute top-2 right-2 size-2 rounded-full bg-open" aria-hidden />}
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -205,7 +167,7 @@ export function Shell() {
                   </SheetTitle>
                   <SheetDescription className="mt-1 truncate">{user?.name || user?.email}</SheetDescription>
                 </div>
-                <SidebarBody pending={pending} touch onNavigate={() => setMenuOpen(false)} />
+                <SidebarBody touch onNavigate={() => setMenuOpen(false)} />
               </SheetContent>
             </Sheet>
           </div>

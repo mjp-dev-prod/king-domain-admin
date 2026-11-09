@@ -15,7 +15,6 @@ import { DecisionDetail } from '@/pages/DecisionDetail'
 import { NewDecision } from '@/pages/NewDecision'
 import { AppReleases } from '@/pages/AppReleases'
 import { Ledger } from '@/pages/Ledger'
-import { ProofReview } from '@/pages/ProofReview'
 import { Inbox } from '@/pages/Inbox'
 import { IdentityReview } from '@/pages/IdentityReview'
 import { Authenticity } from '@/pages/Authenticity'
@@ -113,8 +112,6 @@ export default function App() {
                 }
               />
               <Route path="decisions/:id" element={<DecisionDetail />} />
-              <Route path="proof-review" element={<ProofReview />} />
-              <Route path="proof-review/:id" element={<ProofReview />} />
               <Route path="app-releases" element={<AppReleases />} />
               <Route path="ledger" element={<Ledger />} />
               <Route

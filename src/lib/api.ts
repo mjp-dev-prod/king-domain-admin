@@ -274,31 +274,6 @@ export type AppRelease = {
   forceUpdateActivatedAt: string | null
 }
 
-export type ProofStatus = 'pending' | 'verified'
-
-export type ProofItem = {
-  id: string
-  category: string
-  title: string
-  /** Short-lived (5 min) signed URL to the private file; re-fetch the item when it expires. */
-  fileUrl: string | null
-  fileName: string | null
-  status: ProofStatus
-  reviewedById: string | null
-  reviewedAt: string | null
-  createdAt: string
-  talent: {
-    id: string
-    fullName: string
-    email: string
-    headline: string
-    bio: string
-    skillCategories: string[]
-  } | null
-}
-
-export type ProofCounts = { pending: number; verified: number }
-
 export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
@@ -565,13 +540,6 @@ export const api = {
   deleteAppRelease: (id: string) =>
     request<{ ok: true }>(`/admin/app-releases/${id}`, { method: 'DELETE' }),
 
-  proofItems: (status: ProofStatus) =>
-    request<{ proofItems: ProofItem[] }>(`/admin/proof-items?status=${status}`),
-
-  proofItem: (id: string) => request<{ proofItem: ProofItem }>(`/admin/proof-items/${id}`),
-
-  proofCounts: () => request<ProofCounts>('/admin/proof-items/counts'),
-
   identityChecks: (status: IdentityStatus) =>
     request<{ checks: IdentityCheck[]; reasons: IdentityReason[] }>(`/admin/identity-checks?status=${status}`),
 
@@ -683,15 +651,4 @@ export const api = {
 
   testAlert: () => request<{ alert: OpsAlert }>('/admin/alerts/test', { method: 'POST' }),
 
-  approveProof: (id: string) =>
-    request<{ proofItem: ProofItem }>(`/admin/proof-items/${id}/approve`, { method: 'POST' }),
-
-  rejectProof: (id: string, reason: string) =>
-    request<{ ok: true }>(`/admin/proof-items/${id}/reject`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    }),
 }
-
-/** Fired after a review decision so the navigation badge refreshes its count. */
-export const PROOF_COUNTS_CHANGED = 'kd:proof-counts-changed'
