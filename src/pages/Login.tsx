@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,62 +33,51 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-6">
-      <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="mb-8 text-center">
-          <p className="font-display text-3xl font-bold text-gold">KD</p>
-          <p className="label mt-2">King Domain Admin</p>
+    <AuthLayout title="Sign in" footer="Access is invite only.">
+      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link
+              to="/forgot-password"
+              className="text-xs text-violet-text transition-colors hover:underline"
+            >
+              Forgot password?
+            </Link>
           </div>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link
-                to="/forgot-password"
-                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+        {error && (
+          <p className="text-sm text-bad animate-in fade-in" role="alert">
+            {error}
+          </p>
+        )}
 
-          {error && (
-            <p className="text-sm text-destructive animate-in fade-in" role="alert">
-              {error}
-            </p>
-          )}
-
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting && <Loader2 className="animate-spin" />}
-            Sign in
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Access is invite only.
-        </p>
-      </div>
-    </div>
+        <Button type="submit" glow className="w-full" disabled={submitting}>
+          {submitting && <Loader2 className="animate-spin" />}
+          Sign in
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
