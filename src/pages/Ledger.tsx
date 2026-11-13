@@ -1,6 +1,14 @@
 import { useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { LEDGER_MILESTONES, LEDGER_ADDENDUM, type LedgerMilestone, type MilestoneStatus } from '@/lib/ledgerData'
+import {
+  LEDGER_ADDENDUM,
+  LEDGER_MILESTONES,
+  LEDGER_OPEN_ITEMS,
+  LEDGER_REGISTER,
+  LEDGER_UPDATED,
+  type LedgerMilestone,
+  type MilestoneStatus,
+} from '@/lib/ledgerData'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Eyebrow, PageHeader } from '@/components/kd/PageHeader'
@@ -90,6 +98,49 @@ function MilestoneCard({
   )
 }
 
+/** The PRD's decision register, D1 to D47, grouped by the area each decision belongs to. */
+function Register() {
+  const [open, setOpen] = useState(false)
+  const areas = [...new Set(LEDGER_REGISTER.map((r) => r.area))]
+  return (
+    <div className="space-y-3">
+      <h2 className="text-xl font-extrabold">What the PRD decided</h2>
+      <p className="text-sm text-text-2">
+        {LEDGER_REGISTER.length} numbered decisions from the product requirements document. The full wording and evidence for each
+        is in the research doc named beside it.
+      </p>
+      <Card className="gap-0 overflow-hidden p-0">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex w-full cursor-pointer items-center justify-between gap-3 p-5 text-left transition-colors hover:bg-surface-2"
+        >
+          <span className="text-sm font-semibold">{open ? 'Hide the register' : 'Show the register'}</span>
+          <ChevronDown className={cn('size-4 text-text-2 transition-transform duration-200', open && 'rotate-180')} />
+        </button>
+        {open && (
+          <div className="space-y-5 p-5">
+            {areas.map((area) => (
+              <div key={area}>
+                <Eyebrow className="mb-2">{area}</Eyebrow>
+                <ul className="space-y-1.5">
+                  {LEDGER_REGISTER.filter((r) => r.area === area).map((r) => (
+                    <li key={r.id} className="grid grid-cols-[3rem_1fr] gap-2 text-sm">
+                      <span className="tabular font-semibold text-violet-text">{r.id}</span>
+                      <span className="text-text-2">{r.decision}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
 export function Ledger() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 animate-in fade-in duration-500">
@@ -97,11 +148,15 @@ export function Ledger() {
         <PageHeader
           eyebrow="Working Ledger · Student Talent Marketplace"
           title="Decision Ledger & Weekly Report"
-          description="Seven milestones, in the sequence the product vision itself lays out. Each one closes when an open question becomes a settled decision — not when a date passes."
+          description="Seven milestones, in the sequence the product vision lays out, kept in step with the product requirements document. Each one closes when an open question becomes a settled decision, not when a date passes."
         />
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-2">
           <span>
-            Source: <strong className="text-foreground">Product Vision v0.1</strong>
+            Source: <strong className="text-foreground">Product Vision v0.1</strong> and the{' '}
+            <strong className="text-foreground">PRD</strong> (decisions D1 to D47)
+          </span>
+          <span>
+            Updated: <strong className="text-foreground">{LEDGER_UPDATED}</strong>
           </span>
           <span>
             Cadence: <strong className="text-foreground">Weekly, minimum</strong>
@@ -149,11 +204,28 @@ export function Ledger() {
         ))}
       </div>
 
+      <Register />
+
+      <div className="space-y-3">
+        <h2 className="text-xl font-extrabold">Still open, and who decides</h2>
+        <p className="text-sm text-text-2">
+          From section 7 of the PRD. Nothing here blocks the build unless it says so.
+        </p>
+        <Card className="gap-2 p-4">
+          {LEDGER_OPEN_ITEMS.map((item) => (
+            <div key={item.who} className="grid gap-1 rounded-xl bg-surface-2 p-3 sm:grid-cols-[12rem_1fr] sm:gap-4">
+              <p className="text-sm font-semibold">{item.who}</p>
+              <p className="text-sm text-text-2">{item.what}</p>
+            </div>
+          ))}
+        </Card>
+      </div>
+
       <div className="space-y-3">
         <h2 className="text-xl font-extrabold">Decided outside the sequence</h2>
         <p className="text-sm text-text-2">
-          Two calls were made ahead of their "natural" milestone, deliberately rather than by
-          drift — recorded here so the ledger stays honest about what's actually settled.
+          Calls made ahead of their "natural" milestone, deliberately rather than by drift,
+          recorded here so the ledger stays honest about what is actually settled.
         </p>
         {LEDGER_ADDENDUM.map((item, i) => (
           <Card key={i} className="gap-1 p-4">
@@ -164,9 +236,9 @@ export function Ledger() {
       </div>
 
       <p className="border-t border-line pt-4 text-xs text-text-2">
-        Sourced from <em>Student Talent Marketplace — Product Vision v0.1</em>. As milestones
-        close, their status here moves from open to settled and the reasoning gets folded back
-        into the vision doc's own decision register.
+        Sourced from <em>Student Talent Marketplace: Product Vision v0.1</em> and the product
+        requirements document (<code>docs/core/prd.md</code>). The PRD is the source of truth; if this
+        page and the PRD differ, the PRD is right and this page needs fixing.
       </p>
     </div>
   )
