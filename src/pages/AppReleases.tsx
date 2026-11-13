@@ -181,8 +181,10 @@ export function AppReleases() {
         title="App releases"
         description="Direct-APK distribution for internal testing — no Play Store yet."
         actions={
+          // With no releases the empty state below offers the same button, so the page shows it once.
           isOwner &&
-          !creating && (
+          !creating &&
+          releases?.length !== 0 && (
             <Button size="sm" glow onClick={() => setCreating(true)}>
               <Plus className="size-4" />
               New draft
@@ -267,7 +269,7 @@ export function AppReleases() {
           action={
             isOwner &&
             !creating && (
-              <Button size="sm" onClick={() => setCreating(true)}>
+              <Button size="sm" glow onClick={() => setCreating(true)}>
                 <Plus className="size-4" />
                 New draft
               </Button>
