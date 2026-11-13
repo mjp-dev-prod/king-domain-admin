@@ -27,14 +27,15 @@ export function QueueRow({
   selected?: boolean
   name: string
   skill?: string
-  since: string
-  targetMinutes: number | null
+  /** When it started waiting. Leave out for a row that is no longer waiting (a decided item). */
+  since?: string
+  targetMinutes?: number | null
   preview?: WorkPreviewData | null
   showPreview?: boolean
   fallbackIcon?: ComponentType<{ className?: string }>
   flags?: ReactNode
 }) {
-  const tone = waitTone(since, targetMinutes)
+  const tone = since ? waitTone(since, targetMinutes ?? null) : 'plain'
   return (
     <Link
       to={to}
@@ -48,9 +49,11 @@ export function QueueRow({
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center justify-between gap-2">
           <p className="truncate font-semibold">{name}</p>
-          <StatusPill tone={tone} icon={<Clock />}>
-            {waitLabel(since)}
-          </StatusPill>
+          {since && (
+            <StatusPill tone={tone} icon={<Clock />}>
+              {waitLabel(since)}
+            </StatusPill>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {skill && <StatusPill tone="plain">{skill}</StatusPill>}

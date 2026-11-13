@@ -8,7 +8,7 @@ import { Sentry } from '@/lib/sentry'
  * with the page that raised it.
  */
 export function useQueueList<T extends { id: string }>(load: () => Promise<T[]>, page: string) {
-  const [rows, setRows] = useState<T[] | null>(null)
+  const [loaded, setLoaded] = useState<{ page: string; rows: T[] } | null>(null)
   const [failed, setFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const loadRef = useRef(load)
@@ -22,7 +22,7 @@ export function useQueueList<T extends { id: string }>(load: () => Promise<T[]>,
     atLeast(loadRef.current())
       .then((r) => {
         if (cancelled) return
-        setRows(r)
+        setLoaded({ page, rows: r })
         setFailed(false)
       })
       .catch((err: unknown) => {
@@ -36,12 +36,14 @@ export function useQueueList<T extends { id: string }>(load: () => Promise<T[]>,
   }, [attempt, page])
 
   const reload = useCallback(() => {
-    setRows(null)
+    setLoaded(null)
     setFailed(false)
     setAttempt((n) => n + 1)
   }, [])
 
-  const remove = useCallback((id: string) => setRows((r) => (r ? r.filter((x) => x.id !== id) : r)), [])
+  const remove = useCallback((id: string) => setLoaded((l) => (l ? { ...l, rows: l.rows.filter((x) => x.id !== id) } : l)), [])
+  // Rows from another page key (a different filter) are not shown while the new ones load.
+  const rows = loaded && loaded.page === page ? loaded.rows : null
 
   return { rows, failed, reload, remove }
 }
