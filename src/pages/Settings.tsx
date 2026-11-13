@@ -3,6 +3,8 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { AppearanceControl } from '@/components/kd/AppearanceControl'
+import { Eyebrow, PageHeader } from '@/components/kd/PageHeader'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,17 +51,25 @@ export function Settings() {
   }
 
   return (
-    <div className="max-w-md space-y-4 animate-in fade-in duration-500">
-      <Card className="p-5">
-        <p className="label mb-1">Signed in as</p>
+    <div className="mx-auto w-full max-w-2xl space-y-4 animate-in fade-in duration-500">
+      <PageHeader title="Settings" description="Your account, and how this dashboard looks to you." />
+
+      <Card className="gap-1 p-5">
+        <Eyebrow>Signed in as</Eyebrow>
         <p className="text-sm">{user?.email}</p>
       </Card>
 
-      <Card className="p-5">
-        <p className="label mb-1">Change password</p>
-        <p className="mb-4 text-xs text-muted-foreground">
-          Changing your password signs out every other session.
-        </p>
+      <Card className="gap-3 p-5">
+        <div>
+          <Eyebrow className="mb-1">Appearance</Eyebrow>
+          <p className="text-sm text-text-2">System follows your device. Light and Dark stay as you choose, in this browser.</p>
+        </div>
+        <AppearanceControl className="self-start" />
+      </Card>
+
+      <Card className="gap-0 p-5">
+        <Eyebrow className="mb-1">Change password</Eyebrow>
+        <p className="mb-4 text-sm text-text-2">Changing your password signs out every other session.</p>
 
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <div className="space-y-2">
@@ -84,7 +94,7 @@ export function Settings() {
               onChange={(e) => setNext(e.target.value)}
               required
             />
-            <p className="text-xs text-muted-foreground">At least {MIN_PASSWORD} characters.</p>
+            <p className="text-xs text-text-2">At least {MIN_PASSWORD} characters.</p>
           </div>
 
           <div className="space-y-2">
@@ -100,12 +110,12 @@ export function Settings() {
           </div>
 
           {error && (
-            <p className="text-sm text-destructive animate-in fade-in" role="alert">
+            <p className="text-sm text-bad animate-in fade-in" role="alert">
               {error}
             </p>
           )}
 
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" glow disabled={submitting}>
             {submitting && <Loader2 className="animate-spin" />}
             Update password
           </Button>

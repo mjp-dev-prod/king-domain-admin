@@ -4,64 +4,125 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * King Domain brand v0 — see king-domain-mobile/CLAUDE.md.
- * The admin runs dark-first: it's an internal tool people keep open, and the
- * ink ground matches the marketing site.
+ * King Domain brand v1, Royal Violet, in light and dark. Authoritative values and roles: king-domain-mobile/CLAUDE.md
+ * ("Colour (Royal Violet)"). Dark is the mobile app's palette. Light is derived from the same roles (2026-11-13) and
+ * every text pair is measured against WCAG AA by `npm run check:contrast`, which reads THIS file.
+ *
+ * The admin follows the system theme by default; Settings and the shell can force Light or Dark (src/lib/appearance.ts).
+ * `:root` is light and `.dark` overrides it.
+ *
+ * Each colour has one job (the app's rule): violet = you can act, gold = money, green = verified or done,
+ * amber = waiting on someone, red = errors and lateness. Never use one for another's meaning.
  */
-@theme {
-  --color-ink: #151a2e;
-  --color-ink-2: #1e2438;
-  --color-ink-3: #2a3149;
-  --color-paper: #faf8f3;
-  --color-paper-2: #f1eee6;
-  --color-gold: #c9a227;
-  --color-gold-soft: #e0be4a;
-  --color-green: #2f7a5e;
-  --color-green-soft: #4fa37f;
-  --color-slate-body: #5b6178;
-  --color-slate-dim: #8a90a3;
-  /* Status pair for decision records: open/pending vs settled/closed. Not
-   * decoration — reserved for this one semantic use, same rule as Signal
-   * Green elsewhere. Values match the dark-mode tokens already validated in
-   * the Marketplace Decision Ledger artifact, so both surfaces agree. */
-  --color-open: #e2896c;
-  --color-settled: #6fbba2;
 
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-sans: 'Public Sans', -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+/* ── The brand tokens (--kd-*): the single source. Everything else below reads these. ── */
+:root {
+  color-scheme: light;
 
-  --radius-kd: 4px;
+  /* Surfaces. In light a card is white on a lavender page; in dark a card is one step lighter than the page. */
+  --kd-ground: #f3f1f9;
+  --kd-s1: #ffffff; /* cards, list groups, inputs */
+  --kd-s2: #f6f4fc; /* tiles inside cards */
+  --kd-s3: #e6e1f4; /* pressed, selected */
+  --kd-line: rgb(27 21 48 / 0.1); /* dividers inside a surface only, never a card outline */
+  --kd-field: #8a82a5; /* the edge of an input: a field must be findable (3:1 on its card) */
+
+  --kd-text: #1b1530;
+  --kd-text-2: #4f4768;
+  --kd-text-3: #675f82; /* hints, timestamps, disabled */
+
+  --kd-violet: #7451f2; /* the action colour: primary button fill, active item, progress */
+  --kd-on-violet: #ffffff;
+  --kd-violet-text: #5b3cd0; /* violet as text or icons */
+  --kd-money: #7d5a00; /* gold as text: money only */
+  --kd-gold: #f2c14e; /* the KD logomark and gold fills (never text) */
+  --kd-ok: #086a49; /* verified, done, paid */
+  --kd-warn: #9a4f00; /* waiting on someone */
+  --kd-bad: #b42323; /* errors, destructive, past target */
+
+  --kd-shadow: 0 1px 2px rgb(27 21 48 / 0.06), 0 8px 24px rgb(27 21 48 / 0.08); /* only things that float */
 }
 
-:root {
-  --radius: 0.25rem;
+.dark {
+  color-scheme: dark;
 
-  --background: #151a2e;
-  --foreground: #faf8f3;
-  --card: #1e2438;
-  --card-foreground: #faf8f3;
-  --popover: #1e2438;
-  --popover-foreground: #faf8f3;
-  --primary: #c9a227;
-  --primary-foreground: #151a2e;
-  --secondary: #2a3149;
-  --secondary-foreground: #faf8f3;
-  --muted: #2a3149;
-  --muted-foreground: #8a90a3;
-  --accent: #2a3149;
-  --accent-foreground: #faf8f3;
-  --destructive: #e8836b;
-  --border: #2a3149;
-  --input: #2a3149;
-  --ring: #c9a227;
+  --kd-ground: #0d0a16;
+  --kd-s1: #191428;
+  --kd-s2: #241d38;
+  --kd-s3: #30284a;
+  --kd-line: rgb(255 255 255 / 0.07);
+  --kd-field: #6e6690;
+
+  --kd-text: #f2effa;
+  --kd-text-2: #aba4c3;
+  --kd-text-3: #9a93b5;
+
+  --kd-violet: #7451f2;
+  --kd-on-violet: #ffffff;
+  --kd-violet-text: #a991ff;
+  --kd-money: #f2c14e;
+  --kd-gold: #f2c14e;
+  --kd-ok: #34d399;
+  --kd-warn: #f5a55b;
+  --kd-bad: #f87171;
+
+  --kd-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+/* Tinted surfaces are the tint laid over a CARD (not over the page), so they are never darker than a plain card:
+   the same fix the app got on 2026-11-09. Opaque, so what is behind never changes how they read. */
+:root,
+.dark {
+  --kd-brand-tint: color-mix(in srgb, var(--kd-violet) 12%, var(--kd-s1));
+  --kd-money-tint: color-mix(in srgb, var(--kd-money) 12%, var(--kd-s1));
+  --kd-ok-tint: color-mix(in srgb, var(--kd-ok) 13%, var(--kd-s1));
+  --kd-warn-tint: color-mix(in srgb, var(--kd-warn) 13%, var(--kd-s1));
+  --kd-bad-tint: color-mix(in srgb, var(--kd-bad) 12%, var(--kd-s1));
+}
+
+/* ── shadcn's semantic variables, pointed at the brand tokens ── */
+:root,
+.dark {
+  --radius: 0.75rem;
+
+  --background: var(--kd-ground);
+  --foreground: var(--kd-text);
+  --card: var(--kd-s1);
+  --card-foreground: var(--kd-text);
+  --popover: var(--kd-s1);
+  --popover-foreground: var(--kd-text);
+  --primary: var(--kd-violet);
+  --primary-foreground: var(--kd-on-violet);
+  --secondary: var(--kd-s2);
+  --secondary-foreground: var(--kd-text);
+  --muted: var(--kd-s2);
+  --muted-foreground: var(--kd-text-2);
+  --accent: var(--kd-s3);
+  --accent-foreground: var(--kd-text);
+  --destructive: var(--kd-bad);
+  --border: var(--kd-line);
+  --input: var(--kd-field);
+  --ring: var(--kd-violet-text);
+}
+
+@theme {
+  /* Fonts: Public Sans for headlines and UI; JetBrains Mono for eyebrow labels and step numbers only; Fraunces only
+     for the KD logomark. `font-display` is kept as an alias so older markup now reads in Public Sans. */
+  --font-sans: 'Public Sans', -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Public Sans', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-logo: 'Fraunces', Georgia, serif;
+
+  /* v1 radii: 12 small controls, 16 buttons and tiles, 20 cards, 28 hero cards and sheets. */
+  --radius-kd: 0.75rem;
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -81,6 +142,34 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* The brand roles, as utilities: bg-surface-2, text-text-3, text-ok, bg-warn-tint ... */
+  --color-ground: var(--kd-ground);
+  --color-surface-1: var(--kd-s1);
+  --color-surface-2: var(--kd-s2);
+  --color-surface-3: var(--kd-s3);
+  --color-line: var(--kd-line);
+  --color-text-2: var(--kd-text-2);
+  --color-text-3: var(--kd-text-3);
+  --color-violet: var(--kd-violet);
+  --color-violet-text: var(--kd-violet-text);
+  --color-money: var(--kd-money);
+  --color-gold: var(--kd-money);
+  --color-ok: var(--kd-ok);
+  --color-warn: var(--kd-warn);
+  --color-bad: var(--kd-bad);
+  --color-brand-tint: var(--kd-brand-tint);
+  --color-money-tint: var(--kd-money-tint);
+  --color-ok-tint: var(--kd-ok-tint);
+  --color-warn-tint: var(--kd-warn-tint);
+  --color-bad-tint: var(--kd-bad-tint);
+
+  /* Older class names, kept so pages not yet restyled still read correctly. New code uses the roles above. */
+  --color-gold-soft: var(--kd-money-tint);
+  --color-open: var(--kd-warn); /* pending: amber, as in the app */
+  --color-settled: var(--kd-ok); /* done: green */
+  --color-green: var(--kd-ok);
+  --color-green-soft: var(--kd-ok-tint);
 }
 
 @layer base {
@@ -88,27 +177,75 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
 
+  /* Titles are Public Sans 800, tight; Fraunces is the logomark only. */
   h1,
   h2,
   h3 {
-    font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.025em;
   }
 
-  /* Uppercase mono labels, used for table headers and stat captions. */
+  /* Uppercase mono labels: eyebrows and step numbers only. */
   .label {
     font-family: var(--font-mono);
     font-size: 0.65rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--muted-foreground);
+    color: var(--kd-text-3);
   }
 
+  /* Numbers that line up: money, counts, countdowns. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* A visible keyboard focus everywhere, in the action colour. */
+  :focus-visible {
+    outline: 2px solid var(--kd-violet-text);
+    outline-offset: 2px;
+  }
+
+  /* A quiet scrollbar that follows the theme (the browser default is a white bar on a dark page). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--kd-s3) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--kd-s3);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--kd-violet) 35%, transparent);
+  }
+
+  /* Respect reduced motion: no transitions or animations for people who asked for none. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

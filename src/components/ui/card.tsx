@@ -2,12 +2,34 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+/** What a card is telling you. Each tone keeps its colour's one job (see CLAUDE.md): brand = you can act, money = gold,
+ *  ok = verified or done, warn = waiting on someone, bad = an error or past target. A tinted card is the tint over a card
+ *  surface, so it is never darker than a plain one. */
+type CardTone = "plain" | "brand" | "money" | "ok" | "warn" | "bad"
+
+const cardTones: Record<CardTone, string> = {
+  plain: "bg-card",
+  brand: "bg-brand-tint",
+  money: "bg-money-tint",
+  ok: "bg-ok-tint",
+  warn: "bg-warn-tint",
+  bad: "bg-bad-tint",
+}
+
+function Card({
+  className,
+  tone = "plain",
+  interactive = false,
+  ...props
+}: React.ComponentProps<"div"> & { tone?: CardTone; interactive?: boolean }) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
+        // A card is one surface step off what it sits on: no outline, no shadow (shadows are for things that float).
+        "flex flex-col gap-6 rounded-xl py-6 text-card-foreground transition-[transform,background-color] duration-200 ease-out",
+        cardTones[tone],
+        interactive && "cursor-pointer hover:bg-surface-2 active:scale-[0.99]",
         className
       )}
       {...props}

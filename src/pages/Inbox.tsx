@@ -7,7 +7,9 @@ import { useAuth } from '@/lib/auth'
 import { formatMinutes } from '@/lib/capabilities'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState, ErrorState, LoadingList } from '@/components/kd/states'
+import { PageHeader } from '@/components/kd/PageHeader'
+import { StatusPill } from '@/components/kd/StatusPill'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -36,43 +38,34 @@ export function Inbox() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-6">
-      <header className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">Inbox</h1>
-          <p className="text-sm text-muted-foreground">Everything waiting on the team, with how long it may wait.</p>
-        </div>
-        <Button variant="ghost" size="icon" onClick={load} aria-label="Refresh">
-          <RefreshCw className="size-4" />
-        </Button>
-      </header>
+      <PageHeader
+        title="Inbox"
+        description="Everything waiting on the team, with how long it may wait."
+        actions={
+          <Button variant="ghost" size="icon" onClick={load} aria-label="Refresh">
+            <RefreshCw className="size-4" />
+          </Button>
+        }
+      />
 
-      {failed && (
-        <Card className="flex items-center justify-between gap-3 p-4">
-          <p className="text-sm">Couldn't load the inbox. Check your connection.</p>
-          <Button size="sm" onClick={load}>Retry</Button>
-        </Card>
-      )}
+      {failed && <ErrorState message="Couldn't load the inbox. Check your connection." onRetry={load} />}
 
-      {!failed && queues === null && [0, 1].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
+      {!failed && queues === null && <LoadingList />}
 
       {!failed && queues?.length === 0 && (
-        <Card className="flex flex-col items-center gap-2 p-8 text-center">
-          <InboxIcon className="size-6 text-muted-foreground" />
-          <p className="font-medium">No queues for you yet</p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Queues appear here once an owner gives you a role on the Team page, such as Reviewer or Finance.
-          </p>
-        </Card>
+        <EmptyState icon={InboxIcon} title="No queues for you yet">
+          Queues appear here once an owner gives you a role on the Team page, such as Reviewer or Finance.
+        </EmptyState>
       )}
 
       {queues?.map((q) => (
-        <Card key={q.key} className="space-y-3 p-4">
+        <Card key={q.key} tone={q.overdue > 0 ? 'bad' : 'plain'} className="gap-4 p-5">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-medium">{q.label}</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="min-w-0">
+              <h2 className="text-lg font-extrabold">{q.label}</h2>
+              <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-text-2">
                 {q.open === 0 ? 'Nothing waiting.' : `${q.open} waiting`}
-                {q.overdue > 0 && <span className="ml-2 font-medium text-destructive">{q.overdue} past target</span>}
+                {q.overdue > 0 && <StatusPill tone="bad">{q.overdue} past target</StatusPill>}
               </p>
             </div>
             <Button asChild size="sm" variant={q.overdue > 0 ? 'default' : 'secondary'}>
@@ -82,25 +75,33 @@ export function Inbox() {
             </Button>
           </div>
 
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
-            <div><dt className="text-muted-foreground">Target</dt><dd>{formatMinutes(q.targetMinutes)}</dd></div>
-            <div><dt className="text-muted-foreground">Oldest</dt><dd>{q.oldestWaitingMinutes === null ? '—' : formatMinutes(q.oldestWaitingMinutes)}</dd></div>
-            <div><dt className="text-muted-foreground">Typical</dt><dd>{formatMinutes(q.p50Minutes)}</dd></div>
-            <div><dt className="text-muted-foreground">Slowest 10%</dt><dd>{formatMinutes(q.p90Minutes)}</dd></div>
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              ['Target', formatMinutes(q.targetMinutes)],
+              ['Oldest', q.oldestWaitingMinutes === null ? '—' : formatMinutes(q.oldestWaitingMinutes)],
+              ['Typical', formatMinutes(q.p50Minutes)],
+              ['Slowest 10%', formatMinutes(q.p90Minutes)],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-xl bg-surface-2 p-3">
+                <dt className="label">{k}</dt>
+                <dd className="tabular mt-1 text-sm font-semibold">{v}</dd>
+              </div>
+            ))}
           </dl>
 
-          <p className="flex items-start gap-2 text-sm text-muted-foreground">
-            {q.overdue > 0 ? <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" /> : <Clock className="mt-0.5 size-4 shrink-0" />}
+          <p className="flex items-start gap-2 text-sm text-text-2">
+            {q.overdue > 0 ? <AlertTriangle className="mt-0.5 size-4 shrink-0 text-bad" /> : <Clock className="mt-0.5 size-4 shrink-0" />}
             <span>If it waits past the target: {q.defaultWhenLate}</span>
           </p>
 
-          {q.sample > 0 && <p className="text-xs text-muted-foreground">Times from the last {q.sample} handled.</p>}
-
-          {user?.role === 'owner' && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(q)}>
-              <Pencil className="size-4" /> Edit target
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {q.sample > 0 ? <p className="text-xs text-text-3">Times from the last {q.sample} handled.</p> : <span />}
+            {user?.role === 'owner' && (
+              <Button variant="ghost" size="sm" onClick={() => setEditing(q)}>
+                <Pencil className="size-4" /> Edit target
+              </Button>
+            )}
+          </div>
         </Card>
       ))}
 
