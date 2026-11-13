@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/kd/PageHeader'
+import { EmptyState, ErrorState } from '@/components/kd/states'
 import { Sentry } from '@/lib/sentry'
 
 function when(iso: string) {
@@ -65,46 +67,44 @@ export function Audit() {
   if (!can(user, 'shareholder')) return <Navigate to="/" replace />
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-6">
-      <header>
-        <h1 className="font-display text-2xl font-semibold">Audit log</h1>
-        <p className="text-sm text-muted-foreground">Every action the team takes: who, when, what, and why. Nothing here can be changed.</p>
-      </header>
+    <div className="mx-auto w-full max-w-5xl space-y-4">
+      <PageHeader title="Audit log" description="Every action the team takes: who, when, what, and why. Nothing here can be changed." />
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <Input placeholder="Action, e.g. proof.approve" value={action} onChange={(e) => setAction(e.target.value)} />
-        <Input placeholder="Subject id" value={subjectId} onChange={(e) => setSubjectId(e.target.value)} />
+        <Input placeholder="Action, e.g. proof.approve" value={action} onChange={(e) => setAction(e.target.value)} aria-label="Filter by action" />
+        <Input placeholder="Subject id" value={subjectId} onChange={(e) => setSubjectId(e.target.value)} aria-label="Filter by subject id" />
       </div>
 
-      {failed && (
-        <Card className="flex items-center justify-between gap-3 p-4">
-          <p className="text-sm">Couldn't load the audit log.</p>
-          <Button size="sm" onClick={() => setAttempt((n) => n + 1)}>Retry</Button>
-        </Card>
-      )}
+      {failed && <ErrorState message="Couldn't load the audit log." onRetry={() => setAttempt((n) => n + 1)} />}
 
-      {!failed && events === null && [0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+      {!failed && events === null && (
+        <div className="space-y-2" aria-busy="true" aria-label="Loading">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
+        </div>
+      )}
 
       {!failed && events?.length === 0 && (
-        <Card className="flex flex-col items-center gap-2 p-8 text-center">
-          <ScrollText className="size-6 text-muted-foreground" />
-          <p className="font-medium">No actions match</p>
-          <p className="text-sm text-muted-foreground">Clear the filters to see everything, newest first.</p>
-        </Card>
+        <EmptyState icon={ScrollText} title="No actions match">
+          Clear the filters to see everything, newest first.
+        </EmptyState>
       )}
 
-      {events?.map((e) => (
-        <Card key={e.id} className="space-y-1 p-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="font-mono text-sm">{e.action}</p>
-            <p className="text-xs text-muted-foreground">{when(e.createdAt)}</p>
-          </div>
-          <p className="text-sm">
-            {e.actor.name ?? e.actor.email} <span className="text-muted-foreground">({e.actorRole})</span> · {e.subjectType} {e.subjectId.slice(0, 8)}
-          </p>
-          {e.note && <p className="text-sm text-muted-foreground">{e.note}</p>}
-        </Card>
-      ))}
+      <div className="space-y-2">
+        {events?.map((e) => (
+          <Card key={e.id} className="gap-1 p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="font-mono text-sm">{e.action}</p>
+              <p className="tabular text-xs text-text-2">{when(e.createdAt)}</p>
+            </div>
+            <p className="text-sm">
+              {e.actor.name ?? e.actor.email} <span className="text-text-2">({e.actorRole})</span> · {e.subjectType} {e.subjectId.slice(0, 8)}
+            </p>
+            {e.note && <p className="text-sm text-text-2">{e.note}</p>}
+          </Card>
+        ))}
+      </div>
 
       {nextBefore && (
         <Button variant="secondary" className="w-full" onClick={() => loadMore(nextBefore)} disabled={loadingMore}>

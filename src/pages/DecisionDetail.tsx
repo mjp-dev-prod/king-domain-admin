@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Loader2, Lock, LockOpen } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FileQuestion, Loader2, Lock, LockOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, ApiError, type Decision, type Stance } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/forms/Textarea'
+import { Eyebrow, PageHeader } from '@/components/kd/PageHeader'
+import { EmptyState, ErrorState } from '@/components/kd/states'
 import { DECISION_LEDGER_URL, findMilestone } from '@/lib/milestones'
 import { Sentry } from '@/lib/sentry'
 import {
@@ -19,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
 
 const STANCE_OPTIONS: { value: Stance; label: string }[] = [
   { value: 'agree', label: 'Agree' },
@@ -27,10 +29,11 @@ const STANCE_OPTIONS: { value: Stance; label: string }[] = [
   { value: 'need_discussion', label: 'Need discussion' },
 ]
 
-const STANCE_STYLES: Record<Stance, string> = {
-  agree: 'border-settled/40 text-settled',
-  disagree: 'border-open/40 text-open',
-  need_discussion: 'border-gold/40 text-gold',
+/** Agreeing is done (green); needing discussion is waiting on the others (amber); disagreeing is a fact, not an error. */
+const STANCE_TONE: Record<Stance, 'ok' | 'warn' | 'plain'> = {
+  agree: 'ok',
+  disagree: 'plain',
+  need_discussion: 'warn',
 }
 
 function formatDateTime(iso: string) {
@@ -50,6 +53,7 @@ export function DecisionDetail() {
 
   const [decision, setDecision] = useState<Decision | null>(null)
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
   const [stancePending, setStancePending] = useState(false)
   const [commentBody, setCommentBody] = useState('')
   const [commentPending, setCommentPending] = useState(false)
@@ -60,33 +64,59 @@ export function DecisionDetail() {
     if (!id) return
     api
       .decision(id)
-      .then((d) => setDecision(d.decision))
+      .then((d) => {
+        setFailed(false)
+        setDecision(d.decision)
+      })
       .catch((err: unknown) => {
         Sentry.captureException(err, { tags: { page: 'decision-detail', request: 'get' } })
         setDecision(null)
+        // "Not found" is only true for a 404; anything else is a failed load the person can retry.
+        setFailed(!(err instanceof ApiError && err.status === 404))
       })
       .finally(() => setLoading(false))
+  }
+
+  function retry() {
+    setLoading(true)
+    setFailed(false)
+    load()
   }
 
   useEffect(load, [id])
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="mx-auto w-full max-w-3xl space-y-4" aria-busy="true" aria-label="Loading">
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-24 w-full" />
       </div>
     )
   }
 
+  if (failed) {
+    return (
+      <div className="mx-auto w-full max-w-3xl">
+        <ErrorState message="Couldn't load this decision." onRetry={retry} />
+      </div>
+    )
+  }
+
   if (!decision || !id) {
     return (
-      <Card className="p-8 text-center text-sm text-muted-foreground">
-        Decision not found.{' '}
-        <Link to="/decisions" className="text-gold underline underline-offset-2">
-          Back to decisions
-        </Link>
-      </Card>
+      <div className="mx-auto w-full max-w-3xl">
+        <EmptyState
+          icon={FileQuestion}
+          title="Decision not found"
+          action={
+            <Button asChild size="sm" variant="secondary">
+              <Link to="/decisions">Back to decisions</Link>
+            </Button>
+          }
+        >
+          It may have been removed, or the link is wrong.
+        </EmptyState>
+      </div>
     )
   }
 
@@ -136,35 +166,29 @@ export function DecisionDetail() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 animate-in fade-in duration-500">
+    <div className="mx-auto w-full max-w-3xl space-y-5 animate-in fade-in duration-500">
       <Button variant="ghost" size="sm" onClick={() => navigate('/decisions')} className="-ml-2">
         <ArrowLeft className="size-4" />
         Back
       </Button>
 
       <div className="space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="font-display text-2xl font-semibold">{decision.title}</h1>
-          <Badge
-            variant="outline"
-            className={cn(
-              'shrink-0',
-              isOpen ? 'border-open/40 text-open' : 'border-settled/40 text-settled',
-            )}
-          >
-            {decision.status}
-          </Badge>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span>
-            Posted by {decision.createdBy.name || decision.createdBy.email} ·{' '}
-            {formatDateTime(decision.createdAt)}
-          </span>
-        </div>
+        <PageHeader
+          title={decision.title}
+          description={
+            <>
+              Posted by {decision.createdBy.name || decision.createdBy.email} · {formatDateTime(decision.createdAt)}
+            </>
+          }
+          actions={
+            <Badge variant={isOpen ? 'warn' : 'ok'} className="capitalize">
+              {decision.status}
+            </Badge>
+          }
+        />
 
         {!isOpen && decision.closedBy && decision.closedAt && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-text-2">
             Closed by {decision.closedBy.name || decision.closedBy.email} at{' '}
             {formatDateTime(decision.closedAt)}
           </p>
@@ -175,21 +199,21 @@ export function DecisionDetail() {
         (() => {
           const milestone = findMilestone(decision.milestoneRef)
           return (
-            <Card className="gap-1.5 border-gold/30 bg-gold/5 p-4">
+            <Card tone="brand" className="gap-1.5 p-4">
               <div className="flex items-center justify-between gap-2">
-                <p className="label text-gold">
+                <p className="label text-violet-text">
                   Milestone {decision.milestoneRef}
                   {milestone && ` — ${milestone.title}`}
                 </p>
                 <Link
                   to={DECISION_LEDGER_URL}
-                  className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  className="flex shrink-0 items-center gap-1 text-xs text-text-2 hover:text-foreground"
                 >
                   Full ledger
                   <ExternalLink className="size-3" />
                 </Link>
               </div>
-              {milestone && <p className="text-sm text-muted-foreground">{milestone.summary}</p>}
+              {milestone && <p className="text-sm text-text-2">{milestone.summary}</p>}
             </Card>
           )
         })()}
@@ -200,7 +224,7 @@ export function DecisionDetail() {
 
       {user?.role === 'owner' && (
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={() => setCloseDialogOpen(true)}
           className="w-fit"
@@ -211,7 +235,7 @@ export function DecisionDetail() {
       )}
 
       <div className="space-y-2">
-        <p className="label text-muted-foreground">Stances</p>
+        <Eyebrow>Stances</Eyebrow>
 
         {isOpen && (
           <div className="flex flex-wrap gap-2">
@@ -219,7 +243,7 @@ export function DecisionDetail() {
               <Button
                 key={opt.value}
                 size="sm"
-                variant={myStance === opt.value ? 'default' : 'outline'}
+                variant={myStance === opt.value ? 'default' : 'secondary'}
                 disabled={stancePending}
                 onClick={() => castStance(opt.value)}
               >
@@ -230,11 +254,11 @@ export function DecisionDetail() {
         )}
 
         {decision.stances.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No one has responded yet.</p>
+          <p className="text-sm text-text-2">No one has responded yet.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {decision.stances.map((s) => (
-              <Badge key={s.user.id} variant="outline" className={STANCE_STYLES[s.stance]}>
+              <Badge key={s.user.id} variant={STANCE_TONE[s.stance]}>
                 {s.user.name || s.user.email}: {s.stance.replace('_', ' ')}
               </Badge>
             ))}
@@ -245,38 +269,31 @@ export function DecisionDetail() {
       <Separator />
 
       <div className="space-y-3">
-        <p className="label text-muted-foreground">
-          Discussion {decision.comments.length > 0 && `(${decision.comments.length})`}
-        </p>
+        <Eyebrow>Discussion {decision.comments.length > 0 && `(${decision.comments.length})`}</Eyebrow>
 
         {decision.comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No comments yet.</p>
+          <p className="text-sm text-text-2">No comments yet.</p>
         ) : (
           <div className="space-y-3">
             {decision.comments.map((comment) => (
-              <div key={comment.id} className="rounded-md border border-border p-3">
-                <div className="mb-1 flex items-baseline justify-between gap-2">
+              <Card key={comment.id} className="gap-1 p-4">
+                <div className="flex items-baseline justify-between gap-2">
                   <p className="text-sm font-medium">{comment.user.name || comment.user.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(comment.createdAt)}
-                  </p>
+                  <p className="tabular text-xs text-text-2">{formatDateTime(comment.createdAt)}</p>
                 </div>
-                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {comment.body}
-                </p>
-              </div>
+                <p className="text-sm whitespace-pre-wrap text-text-2">{comment.body}</p>
+              </Card>
             ))}
           </div>
         )}
 
         {isOpen && (
           <form onSubmit={onComment} className="space-y-2">
-            <textarea
+            <Textarea
               value={commentBody}
               onChange={(e) => setCommentBody(e.target.value)}
               rows={3}
               placeholder="Add a comment…"
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             />
             <div className="flex justify-end">
               <Button type="submit" size="sm" disabled={commentPending || !commentBody.trim()}>
@@ -299,7 +316,7 @@ export function DecisionDetail() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCloseDialogOpen(false)} disabled={closePending}>
+            <Button variant="secondary" onClick={() => setCloseDialogOpen(false)} disabled={closePending}>
               Cancel
             </Button>
             <Button onClick={toggleClosed} disabled={closePending}>

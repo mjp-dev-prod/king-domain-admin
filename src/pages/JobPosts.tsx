@@ -1,29 +1,26 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { AlertTriangle, ArrowLeft, FileText, Loader2, RefreshCw } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle2, FileText, Loader2, RefreshCw } from 'lucide-react'
 import { api, ApiError, type JobPostDetail, type JobPostRow, type PostReason } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { can } from '@/lib/capabilities'
+import { useQueueList } from '@/lib/useQueueList'
+import { useQueueTarget } from '@/lib/wait'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { NativeSelect } from '@/components/forms/NativeSelect'
+import { Money } from '@/components/kd/Money'
+import { PageHeader } from '@/components/kd/PageHeader'
+import { QueueRow } from '@/components/kd/QueueRow'
+import { StatusPill } from '@/components/kd/StatusPill'
+import { EmptyState, ErrorState, LoadingList } from '@/components/kd/states'
 import { Sentry } from '@/lib/sentry'
 
 const TYPE_LABEL: Record<string, string> = { oneDelivery: 'One delivery', milestones: 'Milestones', monthly: 'Monthly', hourly: 'Hourly' }
-
-function waiting(iso: string) {
-  const hours = (Date.now() - new Date(iso).getTime()) / 36e5
-  if (hours < 1) return 'just now'
-  if (hours < 24) return `${Math.floor(hours)}h waiting`
-  const days = Math.floor(hours / 24)
-  return `${days} day${days === 1 ? '' : 's'} waiting`
-}
-
-const money = (currency: string, amount: string | number) => `${currency === 'USD' ? '$' : '₦'}${Number(amount).toLocaleString()}`
 
 export function JobPosts() {
   const { user } = useAuth()
@@ -33,75 +30,53 @@ export function JobPosts() {
 }
 
 function List() {
-  const [rows, setRows] = useState<JobPostRow[] | null>(null)
-  const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    let cancelled = false
-    api
-      .jobPosts()
-      .then((r) => {
-        if (cancelled) return
-        setRows(r.posts)
-        setFailed(false)
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return
-        Sentry.captureException(err, { tags: { page: 'job-posts', request: 'list' } })
-        setFailed(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [attempt])
-
-  const reload = useCallback(() => {
-    setRows(null)
-    setFailed(false)
-    setAttempt((n) => n + 1)
-  }, [])
+  const queue = useQueueList<JobPostRow>(() => api.jobPosts().then((r) => r.posts), 'job-posts')
+  const target = useQueueTarget('job-post')
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-6">
-      <header className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">Job posts</h1>
-          <p className="text-sm text-muted-foreground">A new client's first post, or one that asks for money outside the app, waits here until a person reads it.</p>
-        </div>
-        <Button variant="ghost" size="icon" onClick={reload} aria-label="Refresh"><RefreshCw className="size-4" /></Button>
-      </header>
+    <div className="mx-auto w-full max-w-5xl space-y-4">
+      <PageHeader
+        title="Job posts"
+        description="A new client's first post, or one that asks for money outside the app, waits here until a person reads it."
+        actions={
+          <Button variant="ghost" size="icon" onClick={queue.reload} aria-label="Refresh">
+            <RefreshCw className="size-4" />
+          </Button>
+        }
+      />
 
-      {failed && (
-        <Card className="flex items-center justify-between gap-3 p-4">
-          <p className="text-sm">Couldn't load the list.</p>
-          <Button size="sm" onClick={reload}>Retry</Button>
-        </Card>
+      {queue.failed && <ErrorState message="Couldn't load the list." onRetry={queue.reload} />}
+      {!queue.failed && queue.rows === null && <LoadingList rows={3} />}
+      {!queue.failed && queue.rows?.length === 0 && (
+        <EmptyState icon={FileText} title="Nothing waiting">
+          New posts that need a look appear here.
+        </EmptyState>
       )}
-      {!failed && rows === null && [0, 1].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
-      {!failed && rows?.length === 0 && (
-        <Card className="flex flex-col items-center gap-2 p-8 text-center">
-          <FileText className="size-6 text-muted-foreground" />
-          <p className="font-medium">Nothing waiting</p>
-          <p className="text-sm text-muted-foreground">New posts that need a look appear here.</p>
-        </Card>
-      )}
-      {rows?.map((r) => (
-        <Link key={r.id} to={`/job-posts/${r.id}`}>
-          <Card className="space-y-1 p-4 transition-colors hover:bg-secondary/40">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-medium">{r.title}</p>
-              <Badge variant="outline">{money(r.currency, r.budget)}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {r.client.fullName} · {r.skillLabel} · {TYPE_LABEL[r.jobType] ?? r.jobType} · {waiting(r.createdAt)}
-              {r.flags.length > 0 && (
-                <span className="ml-2 inline-flex items-center gap-1 text-destructive"><AlertTriangle className="size-3" /> {r.flags.length} flagged</span>
-              )}
-            </p>
-          </Card>
-        </Link>
-      ))}
+      <div className="space-y-2">
+        {queue.rows?.map((r) => (
+          <QueueRow
+            key={r.id}
+            to={`/job-posts/${r.id}`}
+            name={r.title}
+            skill={r.skillLabel}
+            since={r.createdAt}
+            targetMinutes={target}
+            fallbackIcon={FileText}
+            flags={
+              <>
+                <Money amount={r.budget} currency={r.currency} className="text-sm" />
+                <StatusPill>{TYPE_LABEL[r.jobType] ?? r.jobType}</StatusPill>
+                <span className="text-xs text-text-2">{r.client.fullName}</span>
+                {r.flags.length > 0 && (
+                  <StatusPill tone="bad" icon={<AlertTriangle />}>
+                    {r.flags.length} flagged
+                  </StatusPill>
+                )}
+              </>
+            }
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -110,6 +85,7 @@ function Detail({ id }: { id: string }) {
   const navigate = useNavigate()
   const [data, setData] = useState<JobPostDetail | null>(null)
   const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [reasons, setReasons] = useState<PostReason[]>([])
   const [reasonCode, setReasonCode] = useState('')
   const [note, setNote] = useState('')
@@ -132,7 +108,13 @@ function Detail({ id }: { id: string }) {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, attempt])
+
+  const retry = useCallback(() => {
+    setData(null)
+    setFailed(false)
+    setAttempt((n) => n + 1)
+  }, [])
 
   async function run(kind: 'approve' | 'reject') {
     setBusy(kind)
@@ -148,95 +130,140 @@ function Detail({ id }: { id: string }) {
     }
   }
 
+  const back = (label: string) => (
+    <Link to="/job-posts" className="inline-flex items-center gap-1 text-sm text-text-2 transition-colors hover:text-foreground">
+      <ArrowLeft className="size-4" /> {label}
+    </Link>
+  )
+
   if (failed) {
     return (
-      <div className="mx-auto max-w-3xl space-y-3 p-4 sm:p-6">
-        <Link to="/job-posts" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> Back</Link>
-        <Card className="p-4 text-sm">Couldn't open this post. It may have been removed.</Card>
+      <div className="mx-auto w-full max-w-4xl space-y-3">
+        {back('Back')}
+        <ErrorState message="Couldn't open this post. It may have been removed." onRetry={retry} />
       </div>
     )
   }
-  if (!data) return <div className="mx-auto max-w-3xl space-y-3 p-4 sm:p-6"><Skeleton className="h-64 w-full rounded-xl" /></div>
+  if (!data) {
+    return (
+      <div className="mx-auto w-full max-w-4xl space-y-3" aria-busy="true" aria-label="Loading">
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    )
+  }
 
   const { post, clientRecord: rec } = data
   const open = post.status === 'screening'
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-6">
-      <Link to="/job-posts" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> All posts</Link>
+    <div className="mx-auto w-full max-w-4xl space-y-4">
+      {back('All posts')}
 
-      <Card className="space-y-2 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-display text-lg font-semibold">{post.title}</p>
-          <Badge variant="outline">{money(post.currency, post.budget)}</Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">{post.skillLabel} · {TYPE_LABEL[post.jobType] ?? post.jobType} · {post.visibility === 'invite' ? 'Invite only' : 'Public'}{post.deliveryDays ? ` · ${post.deliveryDays} days` : ''}</p>
-        <p className="text-sm">{post.description}</p>
+      <PageHeader
+        title={post.title}
+        description={
+          <>
+            {post.skillLabel} · {TYPE_LABEL[post.jobType] ?? post.jobType} · {post.visibility === 'invite' ? 'Invite only' : 'Public'}
+            {post.deliveryDays ? ` · ${post.deliveryDays} days` : ''}
+          </>
+        }
+        actions={<Money amount={post.budget} currency={post.currency} className="text-xl" />}
+      />
+
+      <Card className="p-5">
+        <p className="text-sm whitespace-pre-wrap">{post.description}</p>
       </Card>
 
       {post.flags.length > 0 && (
-        <Card className="flex gap-3 border-destructive/50 p-4 text-sm">
-          <AlertTriangle className="size-5 shrink-0 text-destructive" />
+        <Card tone="bad" className="flex-row gap-3 p-4 text-sm" role="alert">
+          <AlertTriangle className="size-5 shrink-0 text-bad" />
           <div className="space-y-1">
-            <p className="font-medium">The detector flagged:</p>
+            <p className="font-semibold text-bad">The detector flagged:</p>
             {post.flags.map((f) => (
-              <p key={f.code}>{f.label}: <span className="font-mono">"{f.match}"</span></p>
+              <p key={f.code}>
+                {f.label}: <span className="font-mono">"{f.match}"</span>
+              </p>
             ))}
-            <p className="text-muted-foreground">It only flags. You decide.</p>
+            <p className="text-text-2">It only flags. You decide.</p>
           </div>
         </Card>
       )}
 
-      <Card className="space-y-2 p-4 text-sm">
-        <p className="font-medium">The brief</p>
+      <Card className="gap-2 p-5 text-sm">
+        <p className="font-semibold">The brief</p>
         {post.briefLines
           ? post.briefLines.map((l) => (
-              <p key={l.key}><span className="text-muted-foreground">{l.label}: </span>{l.value}</p>
+              <p key={l.key}>
+                <span className="text-text-2">{l.label}: </span>
+                {l.value}
+              </p>
             ))
           : Object.entries(post.brief ?? {}).map(([k, v]) => (
-              <p key={k}><span className="text-muted-foreground">{k}: </span>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</p>
+              <p key={k}>
+                <span className="text-text-2">{k}: </span>
+                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+              </p>
             ))}
         {post.screeningQuestions.length > 0 && (
           <>
-            <p className="pt-2 font-medium">Screening questions</p>
-            {post.screeningQuestions.map((q) => <p key={q}>{q}</p>)}
+            <p className="pt-2 font-semibold">Screening questions</p>
+            {post.screeningQuestions.map((q) => (
+              <p key={q}>{q}</p>
+            ))}
           </>
         )}
       </Card>
 
-      <Card className="space-y-1 p-4 text-sm">
-        <p className="font-medium">The client</p>
-        <p>{post.client.fullName} · {post.client.email}</p>
-        <p className="text-muted-foreground">
-          {rec.identityVerified ? 'Identity verified' : 'Identity NOT verified'}
-          {rec.memberSince ? ` · member since ${new Date(rec.memberSince).toLocaleDateString()}` : ''} · {rec.jobsPosted} posted · {rec.jobsHired} hired · {rec.jobsCompleted} completed
+      <Card className="gap-2 p-5 text-sm">
+        <p className="font-semibold">The client</p>
+        <p>
+          {post.client.fullName} · {post.client.email}
         </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {rec.identityVerified ? <StatusPill tone="ok">Identity verified</StatusPill> : <StatusPill tone="warn">Identity NOT verified</StatusPill>}
+          <span className="text-text-2">
+            {rec.memberSince ? `member since ${new Date(rec.memberSince).toLocaleDateString()} · ` : ''}
+            {rec.jobsPosted} posted · {rec.jobsHired} hired · {rec.jobsCompleted} completed
+          </span>
+        </div>
       </Card>
 
       {!open ? (
-        <Card className="p-4 text-sm">This one has already been handled.</Card>
+        <Card tone="ok" className="flex-row items-center gap-2 p-4 text-sm">
+          <CheckCircle2 className="size-4 shrink-0 text-ok" />
+          This one has already been handled.
+        </Card>
       ) : (
         <>
-          <Card className="space-y-3 p-4">
-            <p className="font-medium">Put it live</p>
-            <Button onClick={() => run('approve')} disabled={busy !== null}>
+          <Card className="gap-3 p-5">
+            <p className="font-semibold">Put it live</p>
+            <Button glow className="w-fit" onClick={() => run('approve')} disabled={busy !== null}>
               {busy === 'approve' && <Loader2 className="animate-spin" />} Approve
             </Button>
           </Card>
-          <Card className="space-y-3 p-4">
-            <p className="font-medium">Send it back</p>
-            <div className="space-y-1">
+          <Card className="gap-3 p-5">
+            <p className="font-semibold">Send it back</p>
+            <div className="space-y-1.5">
               <Label htmlFor="why">Reason (the client sees this)</Label>
-              <select id="why" className="h-9 w-full rounded-md border bg-background px-2 text-sm" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
+              <NativeSelect id="why" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
                 <option value="">Choose a reason</option>
-                {reasons.map((r) => <option key={r.code} value={r.code}>{r.label}</option>)}
-              </select>
+                {reasons.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.label}
+                  </option>
+                ))}
+              </NativeSelect>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="note">Note {reasonCode === 'other' ? '(required)' : '(optional)'}</Label>
               <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
-            <Button variant="secondary" onClick={() => run('reject')} disabled={!reasonCode || (reasonCode === 'other' && note.trim().length < 10) || busy !== null}>
+            <Button
+              variant="secondary"
+              className="w-fit"
+              onClick={() => run('reject')}
+              disabled={!reasonCode || (reasonCode === 'other' && note.trim().length < 10) || busy !== null}
+            >
               {busy === 'reject' && <Loader2 className="animate-spin" />} Send back
             </Button>
           </Card>

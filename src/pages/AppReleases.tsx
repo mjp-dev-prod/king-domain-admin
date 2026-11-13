@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { AlertTriangle, Download, Loader2, Plus, Rocket, Trash2, Zap, ZapOff } from 'lucide-react'
+import { AlertTriangle, Download, Loader2, Plus, Rocket, Smartphone, Trash2, Zap, ZapOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, ApiError, type AppRelease } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/forms/Textarea'
+import { Eyebrow, PageHeader } from '@/components/kd/PageHeader'
+import { StatusPill } from '@/components/kd/StatusPill'
+import { EmptyState, ErrorState } from '@/components/kd/states'
 import {
   Dialog,
   DialogContent,
@@ -19,9 +22,10 @@ import {
 } from '@/components/ui/dialog'
 import { Sentry } from '@/lib/sentry'
 
-const STATUS_STYLES: Record<string, string> = {
-  draft: 'border-border text-muted-foreground',
-  published: 'border-settled/40 text-settled',
+/** A draft is waiting on someone to publish it (amber); published is live (green). */
+const STATUS_TONE: Record<string, 'warn' | 'ok' | 'plain'> = {
+  draft: 'warn',
+  published: 'ok',
 }
 
 function formatDateTime(iso: string) {
@@ -44,6 +48,7 @@ function multilineToList(value: string): string[] {
 export function AppReleases() {
   const { user } = useAuth()
   const [releases, setReleases] = useState<AppRelease[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [creating, setCreating] = useState(false)
 
   const [version, setVersion] = useState('')
@@ -62,11 +67,21 @@ export function AppReleases() {
   function load() {
     api
       .appReleases()
-      .then((d) => setReleases(d.releases))
+      .then((d) => {
+        setFailed(false)
+        setReleases(d.releases)
+      })
       .catch((err: unknown) => {
         Sentry.captureException(err, { tags: { page: 'app-releases', request: 'list' } })
-        setReleases([])
+        // An empty list would read as "no releases yet" and invite a duplicate draft; say it failed instead.
+        setFailed(true)
       })
+  }
+
+  function retry() {
+    setReleases(null)
+    setFailed(false)
+    load()
   }
 
   useEffect(load, [])
@@ -158,27 +173,28 @@ export function AppReleases() {
     },
   }
 
+  const isOwner = user?.role === 'owner'
+
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">App releases</h1>
-          <p className="text-sm text-muted-foreground">
-            Direct-APK distribution for internal testing — no Play Store yet.
-          </p>
-        </div>
-        {user?.role === 'owner' && !creating && (
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus className="size-4" />
-            New draft
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="App releases"
+        description="Direct-APK distribution for internal testing — no Play Store yet."
+        actions={
+          isOwner &&
+          !creating && (
+            <Button size="sm" glow onClick={() => setCreating(true)}>
+              <Plus className="size-4" />
+              New draft
+            </Button>
+          )
+        }
+      />
 
       {creating && (
-        <Card className="p-5">
-          <p className="label mb-1">New draft release</p>
-          <p className="mb-4 text-xs text-muted-foreground">
+        <Card className="gap-0 p-5">
+          <Eyebrow className="mb-1">New draft release</Eyebrow>
+          <p className="mb-4 text-sm text-text-2">
             CI reads this draft's version and changelog on the next push to master, builds the
             APK, and uploads it here — it stays a draft until you publish it.
           </p>
@@ -199,57 +215,36 @@ export function AppReleases() {
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="highlights">Highlights</Label>
-                <textarea
-                  id="highlights"
-                  rows={4}
-                  placeholder={'One per line'}
-                  value={highlights}
-                  onChange={(e) => setHighlights(e.target.value)}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                />
+                <Textarea id="highlights" rows={4} placeholder={'One per line'} value={highlights} onChange={(e) => setHighlights(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="improvements">Improvements</Label>
-                <textarea
-                  id="improvements"
-                  rows={4}
-                  placeholder={'One per line'}
-                  value={improvements}
-                  onChange={(e) => setImprovements(e.target.value)}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                />
+                <Textarea id="improvements" rows={4} placeholder={'One per line'} value={improvements} onChange={(e) => setImprovements(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="fixes">Fixes</Label>
-                <textarea
-                  id="fixes"
-                  rows={4}
-                  placeholder={'One per line'}
-                  value={fixes}
-                  onChange={(e) => setFixes(e.target.value)}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                />
+                <Textarea id="fixes" rows={4} placeholder={'One per line'} value={fixes} onChange={(e) => setFixes(e.target.value)} />
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex flex-wrap items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={forceUpdate}
                 onChange={(e) => setForceUpdate(e.target.checked)}
-                className="accent-gold size-4"
+                className="size-4 accent-violet"
               />
               Request force update once published
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-text-2">
                 (still requires a separate activation step later)
               </span>
             </label>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setCreating(false)}>
+              <Button type="button" variant="secondary" onClick={() => setCreating(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" glow disabled={submitting}>
                 {submitting && <Loader2 className="animate-spin" />}
                 Create draft
               </Button>
@@ -258,51 +253,54 @@ export function AppReleases() {
         </Card>
       )}
 
-      {releases === null ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+      {failed ? (
+        <ErrorState message="Couldn't load the releases." onRetry={retry} />
+      ) : releases === null ? (
+        <div className="space-y-3" aria-busy="true" aria-label="Loading">
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
         </div>
       ) : releases.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
-          No releases yet. Create a draft to give CI something to build.
-        </Card>
+        <EmptyState
+          icon={Smartphone}
+          title="No releases yet"
+          action={
+            isOwner &&
+            !creating && (
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Plus className="size-4" />
+                New draft
+              </Button>
+            )
+          }
+        >
+          Create a draft to give CI something to build.
+        </EmptyState>
       ) : (
         <div className="space-y-3">
           {releases.map((release) => (
             <Card key={release.id} className="gap-3 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-display text-lg font-semibold">{release.version}</span>
-                    <Badge variant="outline" className={STATUS_STYLES[release.status]}>
-                      {release.status}
-                    </Badge>
-                    {release.isLatest && (
-                      <Badge variant="outline" className="border-gold/40 text-gold">
-                        latest
-                      </Badge>
-                    )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="tabular text-lg font-extrabold">{release.version}</span>
+                    <StatusPill tone={STATUS_TONE[release.status] ?? 'plain'}>{release.status}</StatusPill>
+                    {release.isLatest && <StatusPill tone="brand">latest</StatusPill>}
                     {release.forceUpdate && (
-                      <Badge variant="outline" className="border-open/40 text-open">
-                        <Zap className="size-3" />
+                      <StatusPill tone="warn" icon={<Zap />}>
                         force update active
-                      </Badge>
+                      </StatusPill>
                     )}
-                    {!release.forceUpdate && release.forceUpdateRequested && (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        force update requested
-                      </Badge>
-                    )}
+                    {!release.forceUpdate && release.forceUpdateRequested && <StatusPill>force update requested</StatusPill>}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-text-2">
                     Created {formatDateTime(release.createdAt)}
                     {release.publishedAt && ` · Published ${formatDateTime(release.publishedAt)}`}
                   </p>
                 </div>
 
                 {release.apkUrl && (
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="secondary" size="sm" asChild>
                     <a href={release.apkUrl} target="_blank" rel="noreferrer">
                       <Download className="size-4" />
                       Download APK
@@ -316,8 +314,8 @@ export function AppReleases() {
                   {(['highlights', 'improvements', 'fixes'] as const).map((key) =>
                     release.changelog![key].length > 0 ? (
                       <div key={key}>
-                        <p className="label mb-1 capitalize">{key}</p>
-                        <ul className="space-y-0.5 text-muted-foreground">
+                        <Eyebrow className="mb-1 capitalize">{key}</Eyebrow>
+                        <ul className="space-y-0.5 text-text-2">
                           {release.changelog![key].map((line, i) => (
                             <li key={i}>· {line}</li>
                           ))}
@@ -328,7 +326,7 @@ export function AppReleases() {
                 </div>
               )}
 
-              {user?.role === 'owner' && (
+              {isOwner && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {release.status === 'draft' && (
                     <>
@@ -343,7 +341,7 @@ export function AppReleases() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-destructive hover:text-destructive"
+                        className="text-bad hover:text-bad"
                         onClick={() => setPendingAction({ release, kind: 'delete' })}
                       >
                         <Trash2 className="size-4" />
@@ -353,9 +351,9 @@ export function AppReleases() {
                   )}
                   {release.status === 'published' && !release.forceUpdate && (
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
-                      className="border-open/40 text-open hover:text-open"
+                      className="text-warn hover:text-warn"
                       onClick={() => setPendingAction({ release, kind: 'activate' })}
                     >
                       <Zap className="size-4" />
@@ -364,7 +362,7 @@ export function AppReleases() {
                   )}
                   {release.status === 'published' && release.forceUpdate && (
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => setPendingAction({ release, kind: 'deactivate' })}
                     >
@@ -386,14 +384,14 @@ export function AppReleases() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   {dialogCopy[pendingAction.kind].destructive && (
-                    <AlertTriangle className="size-4 text-open" />
+                    <AlertTriangle className="size-4 text-bad" />
                   )}
                   {dialogCopy[pendingAction.kind].title}
                 </DialogTitle>
                 <DialogDescription>{dialogCopy[pendingAction.kind].description}</DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setPendingAction(null)} disabled={actionPending}>
+                <Button variant="secondary" onClick={() => setPendingAction(null)} disabled={actionPending}>
                   Cancel
                 </Button>
                 <Button

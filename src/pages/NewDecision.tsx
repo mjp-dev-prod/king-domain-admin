@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { Textarea } from '@/components/forms/Textarea'
+import { PageHeader } from '@/components/kd/PageHeader'
 import {
   Select,
   SelectContent,
@@ -46,8 +48,8 @@ export function NewDecision() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 animate-in fade-in duration-500">
-      <h1 className="font-display text-2xl font-semibold">New decision</h1>
+    <div className="mx-auto w-full max-w-2xl space-y-4 animate-in fade-in duration-500">
+      <PageHeader title="New decision" description="Put a question to the shareholders. They each say where they stand." />
 
       <Card className="p-5">
         <form onSubmit={onSubmit} className="space-y-4">
@@ -64,13 +66,12 @@ export function NewDecision() {
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <textarea
+            <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
               rows={6}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               placeholder="What's being decided, and why."
             />
           </div>
@@ -91,15 +92,15 @@ export function NewDecision() {
               </SelectContent>
             </Select>
             {selectedMilestone && (
-              <p className="text-xs text-muted-foreground">{selectedMilestone.summary}</p>
+              <p className="text-xs text-text-2">{selectedMilestone.summary}</p>
             )}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => navigate('/decisions')}>
+            <Button type="button" variant="secondary" onClick={() => navigate('/decisions')}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" glow disabled={submitting}>
               {submitting && <Loader2 className="animate-spin" />}
               Post decision
             </Button>
