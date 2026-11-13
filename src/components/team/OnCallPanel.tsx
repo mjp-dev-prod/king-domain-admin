@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NativeSelect } from '@/components/forms/NativeSelect'
 
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
@@ -77,9 +78,9 @@ export function OnCallPanel({ admins }: { admins: AdminUser[] }) {
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="space-y-1.5">
           <Label htmlFor="oc-admin">Person</Label>
-          <select id="oc-admin" className="h-11 w-full rounded-md border border-input bg-secondary px-2 text-sm sm:h-9" value={adminId} onChange={(e) => setAdminId(e.target.value)}>
+          <NativeSelect id="oc-admin" value={adminId} onChange={(e) => setAdminId(e.target.value)}>
             {active.map((a) => <option key={a.id} value={a.id}>{a.name ?? a.email}</option>)}
-          </select>
+          </NativeSelect>
         </div>
         <div className="space-y-1.5"><Label htmlFor="oc-start">Starts</Label><Input id="oc-start" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></div>
         <div className="space-y-1.5"><Label htmlFor="oc-end">Ends</Label><Input id="oc-end" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></div>
