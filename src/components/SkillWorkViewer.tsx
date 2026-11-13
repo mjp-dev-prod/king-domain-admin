@@ -19,8 +19,8 @@ function FileView({ file }: { file: SkillFile }) {
   if (!file.url) return <p className="text-sm text-muted-foreground">{file.name} (link unavailable)</p>
   return (
     <figure className="space-y-1">
-      {file.contentType.startsWith('image/') && <img src={file.url} alt={file.name} className="max-h-96 w-full rounded-lg border border-border object-contain" />}
-      {file.contentType.startsWith('video/') && <video src={file.url} controls playsInline preload="metadata" className="max-h-96 w-full rounded-lg border border-border" />}
+      {file.contentType.startsWith('image/') && <img src={file.url} alt={file.name} className="max-h-96 w-full rounded-lg bg-secondary object-contain" />}
+      {file.contentType.startsWith('video/') && <video src={file.url} controls playsInline preload="metadata" className="max-h-96 w-full rounded-lg bg-secondary" />}
       <figcaption className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <Badge variant="outline">{ROLE_LABEL[file.role]}</Badge>
         <a href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">
@@ -38,9 +38,9 @@ export function SkillWorkViewer({ work }: { work: SkillWork }) {
   return (
     <div className="space-y-4">
       {work.pieces.map((p, i) => (
-        <Card key={p.id} className="space-y-3 p-4">
+        <Card key={p.id} className="gap-3 p-5">
           <div>
-            <p className="font-display text-lg font-semibold">
+            <p className="text-base font-extrabold">
               {i + 1}. {p.title || 'Untitled'}
             </p>
             <p className="text-sm text-muted-foreground">
@@ -48,7 +48,7 @@ export function SkillWorkViewer({ work }: { work: SkillWork }) {
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">The brief</p>
+            <p className="label mb-0.5">The brief</p>
             <p className="text-sm">{p.brief || 'Not given'}</p>
           </div>
           {p.liveLink && (
@@ -73,16 +73,16 @@ export function SkillWorkViewer({ work }: { work: SkillWork }) {
         </Card>
       ))}
 
-      <Card className="space-y-3 p-4">
-        <p className="font-medium">Walkthrough</p>
+      <Card className="gap-3 p-5">
+        <p className="text-base font-extrabold">Walkthrough</p>
         {work.walkthrough.length === 0 && <p className="text-sm text-muted-foreground">None.</p>}
         {work.walkthrough.map((f) => (
           <FileView key={f.id} file={f} />
         ))}
       </Card>
 
-      <Card className="space-y-1 p-4 text-sm">
-        <p className="font-medium">Declaration</p>
+      <Card className="gap-1 p-5 text-sm">
+        <p className="text-base font-extrabold">Declaration</p>
         <p>{work.declaration.ownWork ? 'Says the work is their own.' : 'Has not declared the work is their own.'}</p>
         <p className="text-muted-foreground">{work.declaration.aiUsed ? `Used AI: ${work.declaration.aiNote ?? 'no note'}` : 'Says no AI was used.'}</p>
       </Card>

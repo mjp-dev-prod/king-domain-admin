@@ -143,12 +143,12 @@ function SidebarBody({ onNavigate, touch }: { onNavigate?: () => void; touch?: b
           </div>
         </div>
         <AppearanceControl className="w-full [&>button]:flex-1" />
-        <div className="space-y-0.5">
-          <NavLink to="/settings" onClick={onNavigate} className={({ isActive }) => row(isActive)}>
+        <div className="grid grid-cols-2 gap-1">
+          <NavLink to="/settings" onClick={onNavigate} className={({ isActive }) => cn(row(isActive), 'justify-center px-2')}>
             <SettingsIcon className="size-4 shrink-0" />
             Settings
           </NavLink>
-          <button onClick={signOut} className={cn(row(false), 'w-full')}>
+          <button onClick={signOut} className={cn(row(false), 'justify-center px-2')}>
             <LogOut className="size-4 shrink-0" />
             Sign out
           </button>
