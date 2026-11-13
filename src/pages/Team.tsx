@@ -283,7 +283,7 @@ export function Team() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRevoking(null)} disabled={revokePending}>
+            <Button variant="secondary" onClick={() => setRevoking(null)} disabled={revokePending}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmRevoke} disabled={revokePending}>
