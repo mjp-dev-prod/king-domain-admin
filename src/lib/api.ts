@@ -83,7 +83,9 @@ export type SkillWork = {
   walkthrough: SkillFile[]
   declaration: { ownWork: boolean; aiUsed: boolean; aiNote: string | null }
 }
-export type AuthenticityRow = { id: string; skillKey: string; skillLabel: string; submittedAt: string; repeatOfRejected: boolean; person: { name: string } }
+/** The first piece of finished work, for a queue row. Optional: an older server does not send it, and a row never breaks without it. */
+export type WorkPreview = { kind: 'image' | 'video' | 'document' | 'link'; name: string; pieceTitle: string; url: string | null }
+export type AuthenticityRow = { id: string; skillKey: string; skillLabel: string; submittedAt: string; repeatOfRejected: boolean; person: { name: string }; preview?: WorkPreview | null }
 export type AuthenticityDetail = {
   submission: SkillWork & {
     submittedAt: string
