@@ -9,12 +9,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { Money } from '@/components/kd/Money'
+import { EmptyState, ErrorState, LoadingList } from '@/components/kd/states'
+import { PageHeader } from '@/components/kd/PageHeader'
+import { StatusPill } from '@/components/kd/StatusPill'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FilterTabs } from '@/components/FilterTabs'
 import { Sentry } from '@/lib/sentry'
 import { cn } from '@/lib/utils'
 
-const money = (n: number, currency = 'NGN') => `${currency === 'USD' ? '$' : '₦'}${n.toLocaleString('en-NG', { maximumFractionDigits: 2 })}`
+const money = (n: number, currency = 'NGN') => <Money amount={n} currency={currency} />
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '')
 
 function dueIn(iso: string | null): { text: string; late: boolean } {
@@ -66,62 +71,58 @@ function List() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-6">
-      <header className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold">Disputes</h1>
-          <p className="text-sm text-muted-foreground">Cases the two sides could not settle. A free ruling with written reasons is promised within 5 days, and it is final.</p>
-        </div>
-        <Button variant="ghost" size="icon" onClick={reload} aria-label="Refresh"><RefreshCw className="size-4" /></Button>
-      </header>
+      <PageHeader
+        title="Disputes"
+        description="Cases the two sides could not settle. A free ruling with written reasons is promised within 5 days, and it is final."
+        actions={<Button variant="ghost" size="icon" onClick={reload} aria-label="Refresh"><RefreshCw className="size-4" /></Button>}
+      />
       <FilterTabs label="Status" value={status} onChange={(v) => { setRows(null); setStatus(v) }} options={[{ value: 'open', label: 'Waiting for a ruling' }, { value: 'handled', label: 'Ruled on' }]} />
 
-      {failed && <Card className="flex items-center justify-between gap-3 p-4"><p className="text-sm">Couldn't load the list.</p><Button size="sm" onClick={reload}>Retry</Button></Card>}
-      {!failed && rows === null && [0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+      {failed && <ErrorState message="Couldn't load the list." onRetry={reload} />}
+      {!failed && rows === null && <LoadingList rows={3} />}
       {!failed && rows?.length === 0 && (
-        <Card className="flex flex-col items-center gap-2 p-8 text-center">
-          <Scale className="size-6 text-muted-foreground" />
-          <p className="font-medium">{status === 'open' ? 'No cases waiting' : 'Nothing ruled on yet'}</p>
-          <p className="text-sm text-muted-foreground">{status === 'open' ? 'When a dispute is escalated, or silence escalates it, it shows up here with a 5-day clock.' : 'Rulings show up here.'}</p>
-        </Card>
+        <EmptyState icon={Scale} title={status === 'open' ? 'No cases waiting' : 'Nothing ruled on yet'}>
+          {status === 'open' ? 'When a dispute is escalated, or silence escalates it, it shows up here with a 5-day clock.' : 'Rulings show up here.'}
+        </EmptyState>
       )}
       {rows && rows.length > 0 && (
-        <Card className="divide-y overflow-hidden p-0">
+        <div className="space-y-2">
           {rows.map((r) => {
             const due = status === 'open' ? dueIn(r.rulingDueAt) : null
             return (
-              <Link key={r.id} to={`/disputes/${r.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 p-4 transition-colors hover:bg-secondary/40">
+              <Link key={r.id} to={`/disputes/${r.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-card p-4 transition-[transform,background-color] duration-200 hover:bg-surface-2 active:scale-[0.99]">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{r.jobTitle}</p>
-                  <p className="truncate text-sm text-muted-foreground">{r.problem} · filed by {r.filedByRole}</p>
+                  <p className="truncate font-semibold">{r.jobTitle}</p>
+                  <p className="truncate text-sm text-text-2">{r.problem} · filed by {r.filedByRole}</p>
                 </div>
-                <span className="text-sm tabular-nums text-muted-foreground">{money(r.budget, r.currency)}</span>
-                {r.awaitingApproval && <Badge variant="secondary">Needs a second person</Badge>}
-                {due && <span className={cn('inline-flex items-center gap-1 text-xs tabular-nums', due.late ? 'font-medium text-destructive' : 'text-muted-foreground')}><Clock className="size-3" />{due.text}</span>}
-                {r.outcome && <Badge variant="outline">{r.outcome.outcome === 'split' ? `${r.outcome.talentPercent}% to the talent` : r.outcome.outcome === 'release' ? 'Released' : 'Refunded'}</Badge>}
+                <span className="text-sm">{money(r.budget, r.currency)}</span>
+                {r.awaitingApproval && <StatusPill tone="warn">Needs a second person</StatusPill>}
+                {due && <StatusPill tone={due.late ? 'bad' : 'plain'} icon={<Clock />}>{due.text}</StatusPill>}
+                {r.outcome && <StatusPill tone="ok">{r.outcome.outcome === 'split' ? `${r.outcome.talentPercent}% to the talent` : r.outcome.outcome === 'release' ? 'Released' : 'Refunded'}</StatusPill>}
               </Link>
             )
           })}
-        </Card>
+        </div>
       )}
     </div>
   )
 }
 
 function Party({ role, p }: { role: string; p: DisputePerson }) {
-  if (!p) return <Card className="p-4 text-sm text-muted-foreground">{role}: not on record</Card>
+  if (!p) return <Card className="p-4 text-sm text-text-2">{role}: not on record</Card>
   return (
     <Card className="space-y-2 p-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{role}</p>
-        {p.identityVerified ? <Badge variant="secondary"><ShieldCheck />ID checked</Badge> : <Badge variant="outline">ID not checked</Badge>}
+        <p className="label">{role}</p>
+        {p.identityVerified ? <Badge variant="plain"><ShieldCheck />ID checked</Badge> : <Badge variant="plain">ID not checked</Badge>}
       </div>
       <div>
         <p className="font-medium">{p.legalName ?? p.name}</p>
-        <p className="break-all text-sm text-muted-foreground">{p.email}</p>
+        <p className="break-all text-sm text-text-2">{p.email}</p>
       </div>
-      <p className="flex items-start gap-1.5 text-sm"><MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />{p.address ?? <span className="text-muted-foreground">No address given yet</span>}</p>
+      <p className="flex items-start gap-1.5 text-sm"><MapPin className="mt-0.5 size-3.5 shrink-0 text-text-2" />{p.address ?? <span className="text-text-2">No address given yet</span>}</p>
       {p.history && (
-        <p className={cn('text-xs', p.history.flagged ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+        <p className={cn('text-xs', p.history.flagged ? 'font-medium text-bad' : 'text-text-2')}>
           {p.history.flagged && <ShieldAlert className="mr-1 inline size-3.5" />}
           Filed {p.history.filed} dispute{p.history.filed === 1 ? '' : 's'}, lost {p.history.lost}
           {p.history.flagged ? ` (${p.history.lostAsFiler} as the one who filed: a repeat losing filer)` : ''}
@@ -155,7 +156,7 @@ function Case({ id }: { id: string }) {
   if (failed) {
     return (
       <div className="mx-auto max-w-3xl space-y-3 p-4 sm:p-6">
-        <Link to="/disputes" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> Back</Link>
+        <Link to="/disputes" className="inline-flex items-center gap-1.5 text-sm font-medium text-text-2 hover:text-foreground"><ArrowLeft className="size-4" /> Back</Link>
         <Card className="p-4 text-sm">Couldn't open this case.</Card>
       </div>
     )
@@ -168,20 +169,20 @@ function Case({ id }: { id: string }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-6">
-      <Link to="/disputes" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> All disputes</Link>
+      <Link to="/disputes" className="inline-flex items-center gap-1.5 text-sm font-medium text-text-2 hover:text-foreground"><ArrowLeft className="size-4" /> All disputes</Link>
 
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-display text-2xl font-semibold">{data.job.title}</h1>
-          {dispute.status === 'escalated' && <span className={cn('inline-flex items-center gap-1 text-sm tabular-nums', due.late ? 'font-medium text-destructive' : 'text-muted-foreground')}><Clock className="size-4" />Ruling {due.text}</span>}
-          {dispute.status === 'resolved' && <Badge variant="secondary">Ruled {when(dispute.resolvedAt)}</Badge>}
+          <h1 className="text-2xl font-extrabold sm:text-3xl">{data.job.title}</h1>
+          {dispute.status === 'escalated' && <span className={cn('inline-flex items-center gap-1 text-sm tabular-nums', due.late ? 'font-medium text-bad' : 'text-text-2')}><Clock className="size-4" />Ruling {due.text}</span>}
+          {dispute.status === 'resolved' && <Badge variant="plain">Ruled {when(dispute.resolvedAt)}</Badge>}
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <Badge variant="outline">{dispute.problemLabel}</Badge>
-          <Badge variant="outline">Held {money(m.held, m.currency)}</Badge>
-          {m.upfrontPaid > 0 && <Badge variant="outline">{money(m.upfrontPaid, m.currency)} already paid for the start proof</Badge>}
-          <Badge variant="outline">{data.contract.changeRounds} change round{data.contract.changeRounds === 1 ? '' : 's'}</Badge>
-          {dispute.escalationReason && <Badge variant="secondary">Escalated: {dispute.escalationReason}</Badge>}
+          <Badge variant="plain">{dispute.problemLabel}</Badge>
+          <Badge variant="plain">Held {money(m.held, m.currency)}</Badge>
+          {m.upfrontPaid > 0 && <Badge variant="plain">{money(m.upfrontPaid, m.currency)} already paid for the start proof</Badge>}
+          <Badge variant="plain">{data.contract.changeRounds} change round{data.contract.changeRounds === 1 ? '' : 's'}</Badge>
+          {dispute.escalationReason && <Badge variant="plain">Escalated: {dispute.escalationReason}</Badge>}
         </div>
       </header>
 
@@ -196,23 +197,23 @@ function Case({ id }: { id: string }) {
 
           <TabsContent value="case" className="space-y-4">
             <Card className="space-y-2 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">What was said was wrong ({dispute.filedByRole})</p>
+              <p className="label">What was said was wrong ({dispute.filedByRole})</p>
               <p className="text-sm">{dispute.note || 'Opened by the system.'}</p>
-              {dispute.rule && <p className="rounded-lg bg-secondary/50 p-3 text-sm text-muted-foreground">The rule the two people were shown: {dispute.rule}</p>}
+              {dispute.rule && <p className="rounded-lg bg-surface-2 p-3 text-sm text-text-2">The rule the two people were shown: {dispute.rule}</p>}
             </Card>
             <Card className="space-y-2 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">The brief (what the work is judged against)</p>
+              <p className="label">The brief (what the work is judged against)</p>
               <p className="whitespace-pre-wrap text-sm">{data.job.description}</p>
               {data.job.briefLines && data.job.briefLines.length > 0 ? (
                 <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
                   {data.job.briefLines.map((l) => (
-                    <div key={l.key}><dt className="text-xs text-muted-foreground">{l.label}</dt><dd>{l.value}</dd></div>
+                    <div key={l.key}><dt className="text-xs text-text-2">{l.label}</dt><dd>{l.value}</dd></div>
                   ))}
                 </dl>
               ) : data.job.brief && (
                 <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
                   {Object.entries(data.job.brief).map(([k, v]) => (
-                    <div key={k}><dt className="text-xs text-muted-foreground">{k}</dt><dd>{typeof v === 'string' || typeof v === 'number' ? String(v) : JSON.stringify(v)}</dd></div>
+                    <div key={k}><dt className="text-xs text-text-2">{k}</dt><dd>{typeof v === 'string' || typeof v === 'number' ? String(v) : JSON.stringify(v)}</dd></div>
                   ))}
                 </dl>
               )}
@@ -222,19 +223,19 @@ function Case({ id }: { id: string }) {
               <Party role="Talent" p={data.parties.talent} />
             </div>
             <Card className="space-y-2 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ways out they tried</p>
-              {data.proposals.length === 0 && <p className="text-sm text-muted-foreground">Nobody offered a way out.</p>}
+              <p className="label">Ways out they tried</p>
+              {data.proposals.length === 0 && <p className="text-sm text-text-2">Nobody offered a way out.</p>}
               {data.proposals.map((p) => (
-                <p key={p.id} className="text-sm"><span className="font-medium">{p.by}</span> offered {p.description}. <span className="text-muted-foreground">{p.status}{p.note ? `: "${p.note}"` : ''}</span></p>
+                <p key={p.id} className="text-sm"><span className="font-medium">{p.by}</span> offered {p.description}. <span className="text-text-2">{p.status}{p.note ? `: "${p.note}"` : ''}</span></p>
               ))}
             </Card>
           </TabsContent>
 
           <TabsContent value="conversation" className="space-y-2">
-            {data.conversation.length === 0 && <Card className="p-4 text-sm text-muted-foreground">They never wrote to each other in the app.</Card>}
+            {data.conversation.length === 0 && <Card className="p-4 text-sm text-text-2">They never wrote to each other in the app.</Card>}
             {data.conversation.map((c, i) => (
-              <div key={i} className={cn('max-w-[85%] rounded-xl border p-3 text-sm', c.from === 'Client' ? 'mr-auto' : 'ml-auto bg-secondary/40')}>
-                <p className="text-xs text-muted-foreground">{c.from} · {when(c.at)}</p>
+              <div key={i} className={cn('max-w-[85%] rounded-xl p-3 text-sm', c.from === 'Client' ? 'mr-auto bg-surface-2' : 'ml-auto bg-brand-tint')}>
+                <p className="text-xs text-text-2">{c.from} · {when(c.at)}</p>
                 <p className="whitespace-pre-wrap">{c.kind === 'text' || c.kind === 'agreement' ? c.body : `[${c.kind}${c.attachment ? `: ${c.attachment}` : ''}]`}</p>
               </div>
             ))}
@@ -243,17 +244,17 @@ function Case({ id }: { id: string }) {
           <TabsContent value="work" className="space-y-4">
             <Card className="space-y-2 p-4">
               <p className="font-medium">Start proof{data.startProof.status ? ` (${data.startProof.status})` : ' (none)'}</p>
-              {data.startProof.objection && <p className="text-sm text-destructive">Objection: {data.startProof.objection.label}. "{data.startProof.objection.note}"</p>}
+              {data.startProof.objection && <p className="text-sm text-bad">Objection: {data.startProof.objection.label}. "{data.startProof.objection.note}"</p>}
               {data.startProof.items.map((i, k) => (
                 <p key={k} className="text-sm">{i.text ? i.text : i.url ? <a className="underline" href={i.url} target="_blank" rel="noreferrer noopener">{i.name}</a> : i.name}</p>
               ))}
             </Card>
             <Card className="space-y-2 p-4">
               <p className="font-medium">Deliveries ({data.deliveries.length})</p>
-              {data.deliveries.length === 0 && <p className="text-sm text-muted-foreground">Nothing was delivered.</p>}
+              {data.deliveries.length === 0 && <p className="text-sm text-text-2">Nothing was delivered.</p>}
               {data.deliveries.map((d) => (
-                <div key={d.version} className="rounded-lg border p-3 text-sm">
-                  <p className="text-xs text-muted-foreground">Version {d.version} · {when(d.at)}</p>
+                <div key={d.version} className="rounded-lg bg-surface-2 p-3 text-sm">
+                  <p className="text-xs text-text-2">Version {d.version} · {when(d.at)}</p>
                   {d.note && <p className="whitespace-pre-wrap">{d.note}</p>}
                   <div className="flex flex-wrap gap-3">
                     {d.url && <a className="underline" href={d.url} target="_blank" rel="noreferrer noopener">Link</a>}
@@ -265,15 +266,15 @@ function Case({ id }: { id: string }) {
             <Card className="space-y-2 p-4">
               <p className="font-medium">Changes asked for ({data.changeRequests.length})</p>
               {data.changeRequests.map((c) => (
-                <p key={c.round} className="text-sm"><span className="text-muted-foreground">Round {c.round}, {when(c.at)}{c.resubmittedAt ? `, resubmitted ${when(c.resubmittedAt)}` : ', not resubmitted'}:</span> {c.reason}</p>
+                <p key={c.round} className="text-sm"><span className="text-text-2">Round {c.round}, {when(c.at)}{c.resubmittedAt ? `, resubmitted ${when(c.resubmittedAt)}` : ', not resubmitted'}:</span> {c.reason}</p>
               ))}
-              {data.extensions.map((e, i) => <p key={i} className="text-sm text-muted-foreground">Extension: {e.days} day{e.days === 1 ? '' : 's'} ({e.status}): {e.reason}</p>)}
+              {data.extensions.map((e, i) => <p key={i} className="text-sm text-text-2">Extension: {e.days} day{e.days === 1 ? '' : 's'} ({e.status}): {e.reason}</p>)}
             </Card>
             {data.drafts.length > 0 && (
               <Card className="space-y-2 p-4">
                 <p className="font-medium">Drafts shared along the way ({data.drafts.length})</p>
                 {data.drafts.map((d, i) => (
-                  <p key={i} className="text-sm"><span className="text-muted-foreground">{when(d.at)}:</span> {d.note || 'No note'} · {d.files.map((f) => (f.url ? <a key={f.name} className="mr-2 underline" href={f.url} target="_blank" rel="noreferrer noopener">{f.name}</a> : <span key={f.name} className="mr-2">{f.name}</span>))}</p>
+                  <p key={i} className="text-sm"><span className="text-text-2">{when(d.at)}:</span> {d.note || 'No note'} · {d.files.map((f) => (f.url ? <a key={f.name} className="mr-2 underline" href={f.url} target="_blank" rel="noreferrer noopener">{f.name}</a> : <span key={f.name} className="mr-2">{f.name}</span>))}</p>
                 ))}
               </Card>
             )}
@@ -281,7 +282,7 @@ function Case({ id }: { id: string }) {
 
           <TabsContent value="timeline">
             <Card className="space-y-1 p-4">
-              {data.timeline.map((e, i) => <p key={i} className="flex justify-between gap-3 text-sm"><span>{e.type}</span><span className="text-muted-foreground">{when(e.at)}</span></p>)}
+              {data.timeline.map((e, i) => <p key={i} className="flex justify-between gap-3 text-sm"><span>{e.type}</span><span className="text-text-2">{when(e.at)}</span></p>)}
             </Card>
           </TabsContent>
         </Tabs>
@@ -325,7 +326,7 @@ function RulingPanel({ data, onChanged, onDone }: { data: DisputeCase; onChanged
       <Card className="space-y-2 p-4">
         <p className="font-medium">The ruling</p>
         <p className="text-sm">{ruling.outcome === 'split' ? `${ruling.talentPercent}% to the talent` : ruling.outcome === 'release' ? 'Released to the talent' : 'Refunded to the client'}: {money(ruling.talentAmount, m.currency)} to the talent, {money(ruling.clientRefund, m.currency)} back to the client.</p>
-        <p className="whitespace-pre-wrap rounded-lg bg-secondary/50 p-3 text-sm">{ruling.reasons}</p>
+        <p className="whitespace-pre-wrap rounded-lg bg-surface-2 p-3 text-sm">{ruling.reasons}</p>
       </Card>
     )
   }
@@ -336,7 +337,7 @@ function RulingPanel({ data, onChanged, onDone }: { data: DisputeCase; onChanged
     return (
       <Card className="space-y-2 p-4 text-sm">
         <p className="font-medium">Still with the two sides</p>
-        <p className="text-muted-foreground">They can agree a way out for up to 48 hours per offer, or either can ask the team to decide. It shows here once it is escalated.</p>
+        <p className="text-text-2">They can agree a way out for up to 48 hours per offer, or either can ask the team to decide. It shows here once it is escalated.</p>
       </Card>
     )
   }
@@ -345,11 +346,11 @@ function RulingPanel({ data, onChanged, onDone }: { data: DisputeCase; onChanged
     const mine = ruling.decidedById === user?.id
     return (
       <Card className="space-y-3 p-4">
-        <p className="flex items-center gap-2 font-medium"><AlertTriangle className="size-4 text-amber-500" />Waiting for a second person</p>
+        <p className="flex items-center gap-2 font-medium"><AlertTriangle className="size-4 text-warn" />Waiting for a second person</p>
         <p className="text-sm">{ruling.outcome === 'split' ? `${ruling.talentPercent}% to the talent` : ruling.outcome === 'release' ? 'Release to the talent' : 'Refund to the client'}: {money(ruling.talentAmount, m.currency)} to the talent, {money(ruling.clientRefund, m.currency)} back. It moves more than {money(m.secondPersonAbove, m.currency)}, so someone other than the person who ruled has to approve it.</p>
-        <p className="whitespace-pre-wrap rounded-lg bg-secondary/50 p-3 text-sm">{ruling.reasons}</p>
+        <p className="whitespace-pre-wrap rounded-lg bg-surface-2 p-3 text-sm">{ruling.reasons}</p>
         {mine ? (
-          <p className="text-sm text-muted-foreground">You wrote this ruling, so another person has to approve it.</p>
+          <p className="text-sm text-text-2">You wrote this ruling, so another person has to approve it.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             <Button disabled={busy !== null} onClick={() => run('approve', () => api.approveRuling(dispute.id), 'Approved: the money is moving', true)}>
@@ -367,7 +368,7 @@ function RulingPanel({ data, onChanged, onDone }: { data: DisputeCase; onChanged
   if (ruling?.status === 'final') {
     return (
       <Card className="space-y-3 p-4">
-        <p className="flex items-center gap-2 font-medium"><AlertTriangle className="size-4 text-destructive" />The money didn't move</p>
+        <p className="flex items-center gap-2 font-medium"><AlertTriangle className="size-4 text-bad" />The money didn't move</p>
         <p className="text-sm">The ruling stands, but sending the money failed. Try again; it resumes where it stopped and never pays twice.</p>
         <Button disabled={busy !== null} onClick={() => run('retry', () => api.retryRuling(dispute.id), 'Done', true)}>{busy === 'retry' && <Loader2 className="animate-spin" />}Try the money again</Button>
       </Card>
@@ -379,11 +380,11 @@ function RulingPanel({ data, onChanged, onDone }: { data: DisputeCase; onChanged
     <Card className="space-y-4 p-4">
       <div>
         <p className="font-medium">Your ruling</p>
-        <p className="text-sm text-muted-foreground">Free for both sides, final, and shown to both with your reasons.</p>
+        <p className="text-sm text-text-2">Free for both sides, final, and shown to both with your reasons.</p>
       </div>
-      <div role="tablist" aria-label="Outcome" className="grid grid-cols-3 gap-1 rounded-lg bg-secondary/50 p-1 text-sm">
+      <div role="tablist" aria-label="Outcome" className="grid grid-cols-3 gap-1 rounded-lg bg-surface-2 p-1 text-sm">
         {([['release', 'Release'], ['split', 'Split'], ['refund', 'Refund']] as const).map(([v, label]) => (
-          <button key={v} role="tab" aria-selected={outcome === v} onClick={() => setOutcome(v)} className={cn('rounded-md px-2 py-1.5 font-medium transition-colors', outcome === v ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{label}</button>
+          <button key={v} role="tab" aria-selected={outcome === v} onClick={() => setOutcome(v)} className={cn('rounded-md px-2 py-2 font-semibold transition-[background-color,color] duration-200', outcome === v ? 'bg-card shadow-(--kd-shadow)' : 'text-text-2 hover:text-foreground')}>{label}</button>
         ))}
       </div>
       {outcome === 'split' && (
@@ -393,17 +394,17 @@ function RulingPanel({ data, onChanged, onDone }: { data: DisputeCase; onChanged
         </div>
       )}
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">To the talent</p><p className="font-medium tabular-nums">{money(split.talent, m.currency)}</p></div>
-        <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Back to the client</p><p className="font-medium tabular-nums">{money(split.client, m.currency)}</p></div>
+        <div className="rounded-lg bg-surface-2 p-3"><p className="text-xs text-text-2">To the talent</p><p className="font-medium tabular-nums">{money(split.talent, m.currency)}</p></div>
+        <div className="rounded-lg bg-surface-2 p-3"><p className="text-xs text-text-2">Back to the client</p><p className="font-medium tabular-nums">{money(split.client, m.currency)}</p></div>
       </div>
-      <p className="text-xs text-muted-foreground">Of {money(m.held, m.currency)} held. The {money(m.fee, m.currency)} service fee is never refunded.</p>
-      {m.needsSecondPerson && <p className="flex gap-2 rounded-lg bg-amber-500/10 p-3 text-sm"><AlertTriangle className="size-4 shrink-0 text-amber-500" />This is above {money(m.secondPersonAbove, m.currency)}, so a second person will have to approve it before any money moves.</p>}
+      <p className="text-xs text-text-2">Of {money(m.held, m.currency)} held. The {money(m.fee, m.currency)} service fee is never refunded.</p>
+      {m.needsSecondPerson && <p className="flex gap-2 rounded-lg bg-warn-tint p-3 text-sm"><AlertTriangle className="size-4 shrink-0 text-warn" />This is above {money(m.secondPersonAbove, m.currency)}, so a second person will have to approve it before any money moves.</p>}
       <div className="space-y-1">
         <label htmlFor="reasons" className="text-sm">Reasons, for both people to read</label>
-        <textarea id="reasons" value={reasons} onChange={(e) => setReasons(e.target.value)} rows={6} placeholder="What the brief asked for, what the evidence shows, and why this share." className="w-full rounded-md border bg-transparent p-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" />
-        <p className={cn('text-right text-xs tabular-nums', reasonsOk ? 'text-muted-foreground' : 'text-destructive')}>{reasons.trim().length} / 80 at least</p>
+        <Textarea id="reasons" value={reasons} onChange={(e) => setReasons(e.target.value)} rows={6} placeholder="What the brief asked for, what the evidence shows, and why this share." />
+        <p className={cn('text-right text-xs tabular-nums', reasonsOk ? 'text-text-2' : 'text-bad')}>{reasons.trim().length} / 80 at least</p>
       </div>
-      <Button className="w-full" disabled={!reasonsOk || busy !== null} onClick={() => run('rule', () => api.ruleDispute(dispute.id, { outcome, talentPercent: outcome === 'split' ? pct : undefined, reasons: reasons.trim() }), m.needsSecondPerson ? 'Sent for a second person to approve' : 'Ruled: the money is moving', true)}>
+      <Button glow className="w-full" disabled={!reasonsOk || busy !== null} onClick={() => run('rule', () => api.ruleDispute(dispute.id, { outcome, talentPercent: outcome === 'split' ? pct : undefined, reasons: reasons.trim() }), m.needsSecondPerson ? 'Sent for a second person to approve' : 'Ruled: the money is moving', true)}>
         {busy === 'rule' && <Loader2 className="animate-spin" />}{m.needsSecondPerson ? 'Send for approval' : 'Rule and send the money'}
       </Button>
     </Card>

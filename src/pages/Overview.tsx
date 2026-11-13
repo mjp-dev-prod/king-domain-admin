@@ -3,11 +3,14 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { api, ApiError, type Stats } from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ErrorState } from '@/components/kd/states'
+import { PageHeader } from '@/components/kd/PageHeader'
+import { StatTile as Tile } from '@/components/kd/StatTile'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Sentry } from '@/lib/sentry'
 
 const dailyChartConfig = {
-  count: { label: 'Signups', color: 'var(--color-gold)' },
+  count: { label: 'Signups', color: 'var(--kd-violet)' },
 } satisfies ChartConfig
 
 function formatShortDate(iso: string) {
@@ -15,13 +18,7 @@ function formatShortDate(iso: string) {
 }
 
 function StatTile({ label, value, hint }: { label: string; value: number; hint?: string }) {
-  return (
-    <Card className="gap-1 p-5">
-      <p className="label">{label}</p>
-      <p className="tabular font-display text-3xl font-semibold">{value}</p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-    </Card>
-  )
+  return <Tile label={label} value={value} sub={hint} className="p-5" />
 }
 
 /** Signups per day. A bar per day beats a line chart at this data volume. */
@@ -33,12 +30,12 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
     <Card className="p-5">
       <div className="mb-4 flex items-baseline justify-between">
         <p className="label">Signups per day</p>
-        <p className="tabular text-xs text-muted-foreground">peak {peak}</p>
+        <p className="tabular text-xs text-text-2">peak {peak}</p>
       </div>
 
       <ChartContainer config={dailyChartConfig} className="aspect-auto h-40 w-full">
         <BarChart data={daily} margin={{ left: 0, right: 8 }}>
-          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+          <CartesianGrid vertical={false} stroke="var(--kd-line)" strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
             tickFormatter={formatShortDate}
@@ -56,10 +53,10 @@ function DailyChart({ daily }: { daily: Stats['daily'] }) {
             domain={[0, (max: number) => Math.max(4, max)]}
           />
           <ChartTooltip
-            cursor={{ fill: 'var(--secondary)' }}
+            cursor={{ fill: 'var(--kd-brand-tint)' }}
             content={<ChartTooltipContent labelFormatter={(value) => formatShortDate(value as string)} />}
           />
-          <Bar dataKey="count" fill="var(--color-gold)" radius={[3, 3, 0, 0]} maxBarSize={48} />
+          <Bar dataKey="count" fill="var(--kd-violet)" radius={[3, 3, 0, 0]} maxBarSize={48} />
         </BarChart>
       </ChartContainer>
     </Card>
@@ -76,7 +73,7 @@ function CategoryDemand({ categories }: { categories: Stats['categories'] }) {
     return (
       <Card className="p-5">
         <p className="label mb-2">Category demand</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-text-2">
           Nothing picked yet. This fills in as people join.
         </p>
       </Card>
@@ -89,12 +86,12 @@ function CategoryDemand({ categories }: { categories: Stats['categories'] }) {
     <Card className="p-5">
       <div className="mb-4 flex items-baseline justify-between">
         <p className="label">Category demand</p>
-        <p className="flex items-center gap-3 text-xs text-muted-foreground">
+        <p className="flex items-center gap-3 text-xs text-text-2">
           <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-gold" /> Talent
+            <span className="size-2 rounded-full bg-primary" /> Talent
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-green-soft" /> Clients
+            <span className="size-2 rounded-full bg-text-3" /> Clients
           </span>
         </p>
       </div>
@@ -105,22 +102,22 @@ function CategoryDemand({ categories }: { categories: Stats['categories'] }) {
             <div>
               <div className="mb-1 flex items-baseline justify-between gap-2">
                 <span className="text-sm">{row.category}</span>
-                <span className="tabular text-xs text-muted-foreground">
+                <span className="tabular text-xs text-text-2">
                   {row.talent} / {row.client}
                 </span>
               </div>
               <div className="flex h-1.5 overflow-hidden rounded-full bg-secondary">
                 <div
-                  className="bg-gold transition-all duration-700"
+                  className="bg-primary transition-all duration-700"
                   style={{ width: `${(row.talent / peak) * 100}%` }}
                 />
                 <div
-                  className="bg-green-soft transition-all duration-700"
+                  className="bg-text-3 transition-all duration-700"
                   style={{ width: `${(row.client / peak) * 100}%` }}
                 />
               </div>
             </div>
-            <span className="tabular w-8 text-right font-display text-lg font-semibold">
+            <span className="tabular w-8 text-right text-lg font-extrabold">
               {row.total}
             </span>
           </div>
@@ -148,7 +145,7 @@ function Notes() {
   return (
     <Card className="p-5">
       <p className="label mb-1">In their own words</p>
-      <p className="mb-4 text-xs text-muted-foreground">
+      <p className="mb-4 text-xs text-text-2">
         Free-text answers — the categories we didn&rsquo;t offer.
       </p>
 
@@ -158,13 +155,13 @@ function Notes() {
           <Skeleton className="h-8 w-4/5" />
         </div>
       ) : notes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing written in yet.</p>
+        <p className="text-sm text-text-2">Nothing written in yet.</p>
       ) : (
         <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
           {notes.map((note) => (
             <li
               key={note.id}
-              className="flex items-start justify-between gap-3 border-b border-border pb-2 text-sm last:border-0"
+              className="flex items-start justify-between gap-3 rounded-lg bg-surface-2 p-3 text-sm"
             >
               <span>{note.note}</span>
               <span className="label shrink-0">{note.role}</span>
@@ -179,6 +176,7 @@ function Notes() {
 export function Overview() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState('')
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     api
@@ -202,9 +200,9 @@ export function Overview() {
           setError('Could not load stats — an unexpected error occurred.')
         }
       })
-  }, [])
+  }, [attempt])
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>
+  if (error) return <ErrorState message={error} onRetry={() => { setError(''); setAttempt((n) => n + 1) }} />
 
   if (!stats) {
     return (
@@ -218,6 +216,7 @@ export function Overview() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
+      <PageHeader title="Overview" description="Who has joined the waitlist, and what they asked for." />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatTile label="On the waitlist" value={stats.total} />
         <StatTile
