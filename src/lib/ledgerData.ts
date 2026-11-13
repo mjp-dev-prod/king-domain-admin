@@ -19,7 +19,7 @@ export type LedgerMilestone = {
   weeklyLog: string
 }
 
-export const LEDGER_UPDATED = '13 Nov 2026'
+export const LEDGER_UPDATED = '13 Nov 2026 (checked against the code and the build notes)'
 
 export const LEDGER_MILESTONES: LedgerMilestone[] = [
   {
@@ -68,7 +68,7 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
     status: 'settled',
     decisionDate: '3 Sep 2026, extended 31 Oct 2026',
     decisionSummary:
-      'The PRD (sections 3 and 5) now holds the journeys and every screen for both sides, plus the team side, and every screen is specified for its empty, loading, failed, waiting, rejected and done states. Messaging and calls, which the September scope left out, are in the build (slice S4).',
+      'The PRD (sections 3 and 5) now holds the journeys and every screen for both sides, plus the team side, and every screen is specified for its empty, loading, failed, waiting, rejected and done states. Messaging, which the September scope left out, is built (slice S4); calls and the AI note-taker are not built yet.',
     sections: [
       {
         heading: 'What was settled in September, and kept',
@@ -81,12 +81,12 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
         heading: 'Superseded by the PRD (31 Oct 2026)',
         items: [
           'The 22-screen list (T1 to T12, C1 to C10) is replaced by PRD section 5, which lists every screen and is the one to follow.',
-          'No standalone messaging for v1 is reversed: conversations, voice notes, files, and calls with an AI note-taker that only counts when both people confirm (D26 to D28). Contract messages cannot be deleted (D27). Asking before applying is a talent premium feature (D28).',
+          'No standalone messaging for v1 is reversed: conversations, files and held messages are built. Calls with an AI note-taker that only counts when both people confirm (D26), and a voice recorder inside the app, are decided but not built. Contract messages cannot be deleted (D27). Asking before applying is a talent premium feature (D28).',
         ],
       },
     ],
     weeklyLog:
-      'Journeys and screens are now owned by the PRD. September list kept as history; messaging and calls are in scope.',
+      'Journeys and screens are now owned by the PRD. September list kept as history; messaging is built, calls and the note-taker are not.',
   },
   {
     ref: '03',
@@ -110,7 +110,7 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
       {
         heading: 'Identity, student status and age (D10 to D15, D47)',
         items: [
-          'Identity checks for both sides, built behind a provider interface so it does not wait for CAC (D10, D11). Until the provider is live the team checks a NIN slip photo and a short live video by hand (D47).',
+          'Identity checks for both sides (D10). The build does not wait for CAC (D11), and until an identity provider is chosen the team checks a NIN slip photo and a short live video by hand (D47); that manual queue is built. No identity provider is connected yet.',
           'Under-18s are supported with guardian consent and are paid to their own account. Section 28 of the Child’s Rights Act is a known risk, not a blocker (D12).',
           'Student status is a label, not a gate. Education line: Student, Graduate, Trained, Self-taught (D14, D15).',
         ],
@@ -140,7 +140,7 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
     status: 'partial',
     decisionDate: '1 Oct 2026, extended 31 Oct 2026',
     decisionSummary:
-      'Rules are settled. Money is held until the work is approved; every step has a date and a default outcome; disputes get a free ruling with reasons in 5 days, and rulings are final. The platform fee is 10%, never refunded. The provider is Paystack, which is built and tested on staging but not live. Still open: Paystack’s written answer on holding funds in the Balance, and the CAC certificate that live payouts depend on.',
+      'Rules are settled. Money is held until the work is approved; every step has a date and a default outcome; disputes get a free ruling with reasons in 5 days, and rulings are final. The platform fee is 10%, never refunded. The provider is Paystack. Paying for a one-delivery job, the start proof, refunds, disputes and chargebacks are built and tested on staging, but nothing is live, and auto-release of payment is switched off until it is turned on deliberately. Still open: Paystack’s written answer on holding funds in the Balance, and the CAC certificate that live payouts depend on.',
     sections: [
       {
         heading: 'Money (D37 to D40, D2, D8)',
@@ -169,7 +169,7 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
       },
     ],
     weeklyLog:
-      'Rules settled and built on staging with Paystack. Not live: waiting on Paystack’s written answer and the CAC certificate.',
+      'Rules settled. One-delivery payment, start proof, disputes, refunds and chargebacks are built on staging; milestone, monthly and hourly funding, and dollar payments with day’s-rate payouts, are not built. Nothing is live: waiting on Paystack’s written answer and the CAC certificate.',
   },
   {
     ref: '05',
@@ -198,18 +198,18 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
       'Jobs, orders, submissions, reviews, payouts, disputes, profiles, verification records, defined at the product level.',
     status: 'partial',
     decisionSummary:
-      'The state machines are defined: one lifecycle per job type (PRD section 4.1), contract timers per unit (24 hours to pay, delivery dates, 2 extensions, 3-day review, 2 change rounds, overdue at +3 days), the proof protocol, disputes and chargebacks. The data model exists in the app’s database on staging.',
+      'The state machines are defined: one lifecycle per job type (PRD section 4.1), contract timers per unit (24 hours to pay, delivery dates, 2 extensions, 3-day review, 2 change rounds, overdue at +3 days), the proof protocol, disputes and chargebacks. The data model for what is built exists in the database on staging.',
     sections: [
       {
         heading: 'Still open',
         items: [
-          'The numbers for hourly reports and monthly notice are Victor’s to confirm (PRD section 7).',
+          'The numbers for hourly reports and monthly notice are Victor’s to confirm (PRD section 7). The milestone, monthly and hourly job types are defined here but their funding and release are not built.',
           'Premium prices, and the shortlist service’s working hours.',
         ],
       },
     ],
     weeklyLog:
-      'Defined in the PRD and built. Two numbers and the premium prices are still to confirm.',
+      'Defined in the PRD; built for one-delivery jobs. Two numbers and the premium prices are still to confirm.',
   },
   {
     ref: '07',
@@ -218,13 +218,22 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
       'Translate the settled product model into technical architecture, API contracts, data models, and infrastructure decisions.',
     status: 'partial',
     decisionSummary:
-      'The PRD splits the build into slices S0 to S8, each with its own plan, its own admin queue and a walkthrough on Victor’s phone. All work goes to staging; production waits for Victor’s go-ahead. S0 to S8 have been built on staging. The real-money test needs the identity and Paystack live keys, which wait on CAC.',
+      'The PRD splits the build into slices S0 to S8, each with its own plan, its own admin queue and a walkthrough on Victor’s phone. All work goes to staging; production waits for Victor’s go-ahead. S0 to S8 are built and on staging, except the items named under Not built yet. The real-money test needs the identity and Paystack live keys, which wait on CAC.',
     sections: [
       {
         heading: 'The slices',
         items: [
           'S0 Foundations · S1 Accounts and identity · S2 Proving a skill · S3 Jobs and discovery · S4 Messaging and calls',
           'S5 Contracts and money · S6 Disputes and chargebacks · S7 Reviews and reputation · S8 Packages and premium. Training (D41, D42), dollar payouts and more premium features come later.',
+        ],
+      },
+      {
+        heading: 'Not built yet (cut from the slices, on purpose)',
+        items: [
+          'S4: calls and the AI note-taker, a voice recorder inside the app, live sockets (the app polls), quiet hours and mute.',
+          'S5: milestone, monthly and hourly funding and release; dollar payments and payouts at the day’s rate.',
+          'S6: emails for dispute steps (push and in-app only); a payout-failures queue; the agent-visit procedure.',
+          'S7: a re-check queue for Proven. S8: reports on a package, an admin view of packages and entitlements, and refund notices from Google Play. Premium is not enforced yet.',
         ],
       },
       {
@@ -235,7 +244,7 @@ export const LEDGER_MILESTONES: LedgerMilestone[] = [
       },
     ],
     weeklyLog:
-      'Slices S0 to S8 built on staging. The real-money test is waiting on CAC.',
+      'Slices S0 to S8 built and on staging, with the cuts listed above. The real-money test is waiting on CAC.',
   },
 ]
 
