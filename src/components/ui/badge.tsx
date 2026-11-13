@@ -12,12 +12,19 @@ const badgeVariants = cva(
         default: "bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
         secondary:
           "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
-        destructive:
-          "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
+        destructive: "bg-bad-tint text-bad focus-visible:ring-destructive/20 [a&]:hover:bg-bad/20",
         outline:
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 [a&]:hover:underline",
+        link: "text-violet-text underline-offset-4 [a&]:hover:underline",
+        // Status tones, same meaning as the app: brand = you can act, ok = verified or done, warn = waiting on someone,
+        // bad = an error or past target, money = gold, plain = a quiet fact.
+        brand: "bg-brand-tint text-violet-text",
+        money: "bg-money-tint text-money",
+        ok: "bg-ok-tint text-ok",
+        warn: "bg-warn-tint text-warn",
+        bad: "bg-bad-tint text-bad",
+        plain: "bg-secondary text-text-2",
       },
     },
     defaultVariants: {

@@ -29,7 +29,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-[85vw] max-w-xs flex-col border-l border-border bg-background shadow-lg outline-none",
+          "fixed inset-y-0 right-0 z-50 flex w-[85vw] max-w-xs flex-col bg-card shadow-(--kd-shadow) outline-none",
           "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
           "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:animate-in data-[state=open]:slide-in-from-right duration-200 motion-reduce:animate-none",
           className
