@@ -56,32 +56,33 @@ export function OnCallPanel({ admins }: { admins: AdminUser[] }) {
   }
 
   return (
-    <Card className="space-y-4 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-medium">On call</p>
-          <p className="text-sm text-muted-foreground">Who gets urgent alerts (chargebacks, safety reports) outside working hours. With nobody on call, the owners get them.</p>
+    <Card className="space-y-4 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">On call</p>
+          <p className="text-sm text-text-2">Who gets urgent alerts (chargebacks, safety reports) outside working hours. With nobody on call, the owners get them.</p>
         </div>
         <Button variant="secondary" size="sm" onClick={testAlert}><BellRing className="size-4" /> Send a test alert</Button>
       </div>
 
-      {shifts?.length === 0 && <p className="text-sm text-muted-foreground">No shifts coming up. Add this week's rota below.</p>}
+      {shifts === null && <p className="text-sm text-text-2">Loading the rota…</p>}
+      {shifts?.length === 0 && <p className="text-sm text-text-2">No shifts coming up. Add this week's rota below.</p>}
       {shifts?.map((s) => (
-        <div key={s.id} className="flex items-center justify-between gap-2 text-sm">
-          <span>{s.admin.name ?? s.admin.email}: {fmt(s.startsAt)} → {fmt(s.endsAt)}</span>
+        <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2 text-sm">
+          <span className="tabular min-w-0">{s.admin.name ?? s.admin.email}: {fmt(s.startsAt)} → {fmt(s.endsAt)}</span>
           <Button variant="ghost" size="icon" onClick={() => remove(s.id)} aria-label="Remove shift"><Trash2 className="size-4" /></Button>
         </div>
       ))}
 
-      <div className="grid gap-2 sm:grid-cols-4">
-        <div className="space-y-1">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <div className="space-y-1.5">
           <Label htmlFor="oc-admin">Person</Label>
-          <select id="oc-admin" className="h-9 w-full rounded-md border bg-background px-2 text-sm" value={adminId} onChange={(e) => setAdminId(e.target.value)}>
+          <select id="oc-admin" className="h-11 w-full rounded-md border border-input bg-secondary px-2 text-sm sm:h-9" value={adminId} onChange={(e) => setAdminId(e.target.value)}>
             {active.map((a) => <option key={a.id} value={a.id}>{a.name ?? a.email}</option>)}
           </select>
         </div>
-        <div className="space-y-1"><Label htmlFor="oc-start">Starts</Label><Input id="oc-start" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></div>
-        <div className="space-y-1"><Label htmlFor="oc-end">Ends</Label><Input id="oc-end" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="oc-start">Starts</Label><Input id="oc-start" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="oc-end">Ends</Label><Input id="oc-end" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></div>
         <div className="flex items-end"><Button className="w-full" onClick={add} disabled={!adminId || !startsAt || !endsAt || busy}>{busy ? 'Adding…' : 'Add shift'}</Button></div>
       </div>
     </Card>

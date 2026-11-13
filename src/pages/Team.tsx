@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { api, ApiError, type AdminUser, type Skill } from '@/lib/api'
 import { CapabilityEditor } from '@/components/team/CapabilityEditor'
 import { OnCallPanel } from '@/components/team/OnCallPanel'
+import { ErrorState } from '@/components/kd/states'
+import { Eyebrow, PageHeader } from '@/components/kd/PageHeader'
 import { useAuth } from '@/lib/auth'
 import { Sentry } from '@/lib/sentry'
 import { Button } from '@/components/ui/button'
@@ -28,17 +30,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
 
-const STATUS_STYLES: Record<string, string> = {
-  active: 'border-green-soft/40 text-green-soft',
-  invited: 'border-gold/40 text-gold',
-  revoked: 'border-border text-muted-foreground',
+/** Active is in good standing (green), invited is waiting on them to accept (amber), revoked is just a fact. */
+const STATUS_TONE: Record<string, 'ok' | 'warn' | 'plain'> = {
+  active: 'ok',
+  invited: 'warn',
+  revoked: 'plain',
 }
 
 export function Team() {
   const { user } = useAuth()
   const [admins, setAdmins] = useState<AdminUser[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [skills, setSkills] = useState<Skill[]>([])
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -50,11 +53,21 @@ export function Team() {
   function load() {
     api
       .admins()
-      .then((d) => setAdmins(d.admins))
+      .then((d) => {
+        setFailed(false)
+        setAdmins(d.admins)
+      })
       .catch((err: unknown) => {
         Sentry.captureException(err, { tags: { page: 'team', request: 'list' } })
-        setAdmins([])
+        // An empty roster would read as "nobody is on the team"; say it failed and offer a retry instead.
+        setFailed(true)
       })
+  }
+
+  function retry() {
+    setAdmins(null)
+    setFailed(false)
+    load()
   }
 
   useEffect(load, [])
@@ -110,9 +123,11 @@ export function Team() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      <Card className="p-5">
-        <p className="label mb-1">Invite an admin</p>
-        <p className="mb-4 text-xs text-muted-foreground">
+      <PageHeader title="Team" description="Who can sign in, what each person may do, and who is on call." />
+
+      <Card className="gap-0 p-5">
+        <Eyebrow className="mb-1">Invite an admin</Eyebrow>
+        <p className="mb-4 text-sm text-text-2">
           Creates a single-use link. Send it to them yourself — no email is sent.
         </p>
 
@@ -131,14 +146,14 @@ export function Team() {
             <Label htmlFor="invite-name">Name</Label>
             <Input id="invite-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+          <Button type="submit" glow disabled={submitting} className="w-full sm:w-auto">
             {submitting ? <Loader2 className="animate-spin" /> : <UserPlus className="size-4" />}
             Create invite
           </Button>
         </form>
 
         {inviteUrl && (
-          <div className="mt-4 flex items-center gap-2 rounded-md border border-gold/30 bg-gold/5 p-3 animate-in fade-in slide-in-from-top-1">
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-secondary p-3 animate-in fade-in slide-in-from-top-1">
             <code className="flex-1 truncate text-xs">{inviteUrl}</code>
             <Button variant="ghost" size="sm" onClick={copyInvite} className="shrink-0">
               <Copy className="size-3.5" />
@@ -148,8 +163,11 @@ export function Team() {
         )}
       </Card>
 
-      {admins === null ? (
-        <Card className="space-y-2 p-5">
+      {failed ? (
+        <ErrorState message="Couldn't load the team." onRetry={retry} />
+      ) : admins === null ? (
+        <Card className="space-y-2 p-5" aria-busy="true" aria-label="Loading">
+          <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </Card>
@@ -171,14 +189,14 @@ export function Team() {
                 {admins.map((admin) => (
                   <TableRow key={admin.id}>
                     <TableCell className="font-medium">{admin.email}</TableCell>
-                    <TableCell className="text-muted-foreground">{admin.name ?? '—'}</TableCell>
+                    <TableCell className="text-text-2">{admin.name ?? '—'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">
+                      <Badge variant="plain" className="capitalize">
                         {admin.role}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={cn(STATUS_STYLES[admin.status])}>
+                      <Badge variant={STATUS_TONE[admin.status] ?? 'plain'} className="capitalize">
                         {admin.status}
                       </Badge>
                     </TableCell>
@@ -187,7 +205,7 @@ export function Team() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-destructive hover:text-destructive"
+                          className="text-bad hover:text-bad"
                           onClick={() => setRevoking(admin)}
                         >
                           Revoke
@@ -206,22 +224,22 @@ export function Team() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{admin.email}</p>
-                    <p className="text-sm text-muted-foreground">{admin.name ?? '—'}</p>
+                    <p className="text-sm text-text-2">{admin.name ?? '—'}</p>
                   </div>
-                  <Badge variant="outline" className={cn('shrink-0', STATUS_STYLES[admin.status])}>
+                  <Badge variant={STATUS_TONE[admin.status] ?? 'plain'} className="shrink-0 capitalize">
                     {admin.status}
                   </Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="capitalize">
+                  <Badge variant="plain" className="capitalize">
                     {admin.role}
                   </Badge>
                   {canRevoke(admin) && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-destructive hover:text-destructive"
+                      className="text-bad hover:text-bad"
                       onClick={() => setRevoking(admin)}
                     >
                       Revoke
@@ -232,15 +250,15 @@ export function Team() {
             ))}
           </div>
 
-          <Card className="space-y-4 p-4">
+          <Card className="space-y-4 p-5">
             <div>
-              <p className="font-medium">Roles</p>
-              <p className="text-sm text-muted-foreground">What each person may do. Without a role they can read the dashboard but not act.</p>
+              <p className="font-semibold">Roles</p>
+              <p className="text-sm text-text-2">What each person may do. Without a role they can read the dashboard but not act.</p>
             </div>
             {admins
               .filter((a) => a.status === 'active')
               .map((a) => (
-                <div key={a.id} className="space-y-2 border-t border-border pt-3 first:border-t-0 first:pt-0">
+                <div key={a.id} className="space-y-2 border-t border-line pt-3 first:border-t-0 first:pt-0">
                   <p className="text-sm font-medium">{a.name ?? a.email}</p>
                   <CapabilityEditor
                     admin={a}
